@@ -28,7 +28,11 @@ def read(fname):
     return content
 
 
-core_dependencies = []
+core_dependencies = [
+    'fs',
+    'tendril-config',
+    'tendril-utils-fsutils',
+]
 
 install_requires = core_dependencies + ['wheel']
 

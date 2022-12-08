@@ -17,14 +17,14 @@ class FileStoreActualURI(ConfigOptionConstruct):
             bucket_uri = os.path.join(self.ctx['FILESTORE_ACTUAL'], self._parameters)
         parts = bucket_uri.split('://')
         if len(parts) == 1:
-            scheme = "osfs://"
+            scheme = "osfs"
             path = bucket_uri
         else:
             scheme = parts[0]
             path = parts[1]
-        if "osfs://" == scheme and not (path.startswith('/') or path.startswith('~')):
+        if "osfs" == scheme and not (path.startswith('/') or path.startswith('~')):
             path = os.path.join(self.ctx['INSTANCE_ROOT'], path)
-        bucket_uri = "{}{}".format(scheme, path)
+        bucket_uri = "{}://{}".format(scheme, path)
         return bucket_uri
 
 
