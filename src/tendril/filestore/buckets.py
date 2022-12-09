@@ -18,17 +18,28 @@ class FilestoreBucket(object):
         self._allow_delete = allow_delete
         self._create_in_db()
 
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def uri(self):
+        return self._uri
+
     def _create_in_db(self):
-        register_bucket(name=bucket_name)
+        register_bucket(name=self.name)
 
     def check_accepts(self, filename):
         pass
+
+    def __repr__(self):
+        return "<FilestoreBucket {} at {}>".format(self.name, self.uri)
 
 
 _available_buckets = {}
 
 def available_buckets():
-    return _available_buckets.keys()
+    return list(_available_buckets.keys())
 
 
 def _bucket_config(bucket_name):
