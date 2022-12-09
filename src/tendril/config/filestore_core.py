@@ -33,6 +33,17 @@ config_elements_filestore_core = [
         "List of names of filestore buckets to be created."
     ),
     ConfigOption(
+        'FILESTORE_ENABLED',
+        "False",
+        "Whether the filestore is enabled in this instance / component. Generally, "
+        "multi-component Tendril deployments will have the filestore enabled only on "
+        "a single component, and the Filestore API on that component is to be used by "
+        "other components to manipulate the singular filestore. For such deployments, "
+        "this parameter is generally best set through environment variables. In instances "
+        "where only some buckets should be enabled on a component, set this to True and "
+        "individual bucket enabled config parameters to False for the other buckets."
+    ),
+    ConfigOption(
         'FILESTORE_ACTUAL',
         "os.path.join(INSTANCE_ROOT, 'filestore')",
         "Default path to create filestore folders at. This may "

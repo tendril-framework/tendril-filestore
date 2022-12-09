@@ -31,6 +31,11 @@ class FileStoreActualURI(ConfigOptionConstruct):
 def _filestore_config_template(filestore_name):
     return [
         ConfigOption(
+            'FILESTORE_{}_ENABLED'.format(filestore_name),
+            "True",
+            "Whether this filestore bucket is enabled in this instance / component."
+        ),
+        ConfigOption(
             'FILESTORE_{}_ACCEPT_EXT'.format(filestore_name),
             "[]",
             "List of file extensions this filestore bucket should accept through the "
