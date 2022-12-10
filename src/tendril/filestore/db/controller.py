@@ -3,6 +3,7 @@
 from sqlalchemy.orm.exc import NoResultFound
 from tendril.utils.db import with_db
 from tendril.authn.db.controller import preprocess_user
+from tendril import config
 
 from .model import FilestoreBucketModel
 from .model import StoredFileModel
@@ -19,6 +20,10 @@ def get_bucket(name, session=None):
 
 @with_db
 def register_bucket(name, must_create=False, session=None):
+    if not config.FILESTORE_ENABLED:
+        raise EnvironmentError("Filestore not enabled on this component. "
+                               "Use the filestore API on the filestore component instead.")
+
     if name is None:
         raise AttributeError("name cannot be None")
 
@@ -63,6 +68,10 @@ def get_stored_file(filename, bucket, session=None):
 
 @with_db
 def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, session=None):
+    if not config.FILESTORE_ENABLED:
+        raise EnvironmentError("Filestore not enabled on this component. "
+                               "Use the filestore API on the filestore component instead.")
+
     if filename is None:
         raise AttributeError("name cannot be None")
 
@@ -93,6 +102,10 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
 
 @with_db
 def change_file_bucket(filename, bucket, target_bucket, user, session=None):
+    if not config.FILESTORE_ENABLED:
+        raise EnvironmentError("Filestore not enabled on this component. "
+                               "Use the filestore API on the filestore component instead.")
+
     storedfile: StoredFileModel = get_stored_file(filename, bucket, session=session)
 
     target_bucket = preprocess_bucket(target_bucket)

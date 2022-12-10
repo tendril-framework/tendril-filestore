@@ -134,6 +134,11 @@ def _bucket_config(bucket_name):
 
 
 def init():
+    if not config.FILESTORE_ENABLED:
+        logger.info("Filestore not enabled on this component. "
+                    "Filestore operations should be executed via the "
+                    "appropriate API on the filestore component.")
+        return
     for bucket_name in config.FILESTORE_BUCKETS:
         enabled, accept_ext, allow_delete, actual_uri = _bucket_config(bucket_name)
         if not enabled:
