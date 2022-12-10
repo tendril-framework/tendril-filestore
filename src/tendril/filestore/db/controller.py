@@ -3,7 +3,7 @@
 from sqlalchemy.orm.exc import NoResultFound
 from tendril.utils.db import with_db
 
-from .model import FilestoreBucket
+from .model import FilestoreBucketModel
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
@@ -11,7 +11,7 @@ logger = log.get_logger(__name__, log.DEFAULT)
 
 @with_db
 def get_bucket(name, session=None):
-    q = session.query(FilestoreBucket).filter_by(name=name)
+    q = session.query(FilestoreBucketModel).filter_by(name=name)
     return q.one()
 
 
@@ -23,7 +23,7 @@ def register_bucket(name, must_create=False, session=None):
     try:
         existing = get_bucket(name)
     except NoResultFound:
-        bucket = FilestoreBucket(name=name)
+        bucket = FilestoreBucketModel(name=name)
     else:
         if must_create:
             raise ValueError("Filestore Bucket Already Exists")

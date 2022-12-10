@@ -20,7 +20,7 @@ logger = log.get_logger(__name__, log.DEFAULT)
 
 class FilestoreBucketModel(DeclBase, BaseMixin):
     name = Column(String(50), nullable=False, unique=True)
-    files = relationship("StoredFile", back_populates="bucket")
+    files = relationship("StoredFileModel", back_populates="bucket")
 
 
 class StoredFileModel(ArtefactModel):
@@ -30,7 +30,7 @@ class StoredFileModel(ArtefactModel):
     fileinfo = Column(mutable_json_type(dbtype=JSONB, nested=True))
     bucket_id = Column(Integer(),
                        ForeignKey('FilestoreBucket.id'), nullable=False)
-    bucket = relationship("FilestoreBucket", back_populates="files")
+    bucket = relationship("FilestoreBucketModel", back_populates="files")
 
     __mapper_args__ = {
         "polymorphic_identity": _type_name,
