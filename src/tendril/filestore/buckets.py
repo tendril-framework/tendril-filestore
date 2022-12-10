@@ -1,13 +1,12 @@
 
 
+import os
+from fs import open_fs
 from tendril import config
 from .db.controller import register_bucket
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
-
-import sys
-mod = sys.modules[__name__]
 
 
 class FilestoreBucket(object):
@@ -17,6 +16,16 @@ class FilestoreBucket(object):
         self._accept_ext = accept_ext or []
         self._allow_delete = allow_delete
         self._create_in_db()
+        self._prep_fs()
+
+    def _prep_fs(self):
+        if self._uri.startswith("osfs://"):
+            path = self._uri[7:]
+            if path.startswith('~'):
+                path = os.path.expanduser(path)
+            path = os.path.normpath(path)
+            os.makedirs(path, exist_ok=True)
+        self._fs = open_fs(self._uri)
 
     @property
     def name(self):
@@ -26,11 +35,16 @@ class FilestoreBucket(object):
     def uri(self):
         return self._uri
 
+    @property
+    def fs(self):
+        return self._fs
+
     def _create_in_db(self):
         register_bucket(name=self.name)
 
     def check_accepts(self, filename):
-        pass
+        name, ext = os.path.splitext(filename)
+        return ext in self._accept_ext
 
     def __repr__(self):
         return "<FilestoreBucket {} at {}>".format(self.name, self.uri)
@@ -38,8 +52,13 @@ class FilestoreBucket(object):
 
 _available_buckets = {}
 
+
 def available_buckets():
     return list(_available_buckets.keys())
+
+
+def get_bucket(bucket_name):
+    return _available_buckets[bucket_name]
 
 
 def _bucket_config(bucket_name):
@@ -60,7 +79,6 @@ def init():
         logger.info("Creating filestore bucket '{}' at {}".format(bucket_name, actual_uri))
         bucket = FilestoreBucket(actual_uri, bucket_name, accept_ext, allow_delete)
         _available_buckets[bucket_name] = bucket
-        setattr(mod, bucket_name, bucket)
 
 
 init()
