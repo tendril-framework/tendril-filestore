@@ -1,10 +1,12 @@
 
 
 import os
+from fs import move
 from fs import open_fs
 from tendril import config
 from .db.controller import register_bucket
 from .db.controller import register_stored_file
+from .db.controller import change_file_bucket
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
@@ -59,11 +61,11 @@ class FilestoreBucket(object):
         if self._fs.exists(filename):
             if not overwrite:
                 raise FileExistsError(f'{filename} already exists in the bucket. Delete it first.')
-            logger.info(f"Overwriting file {filename} from bucket {self.name}.")
+            logger.warning(f"Overwriting file {filename} in bucket {self.name}.")
             self._fs.remove(filename)
 
         with self._fs.open(filename, 'wb') as target:
-            logger.debug(f"Writing file {filename} to bucker {self.name}")
+            logger.debug(f"Writing file {filename} to bucket {self.name}")
             target.write(file.file.read())
 
         info = self._fs.getinfo(filename, namespaces=['details'])
@@ -76,13 +78,19 @@ class FilestoreBucket(object):
         if modified:
             modified = info.modified.isoformat()
 
-        fileinfo = {'size': info.size, 'created': created, 'modified': modified}
+        # TODO Get file hash
+
+        fileinfo = {'props': {'size': info.size, 'created': created, 'modified': modified}}
         sf = register_stored_file(filename, self._id, user, fileinfo)
 
         return sf
 
-    def transfer(self, file, destination_bucket, user):
-        pass
+    def move(self, filename, target_bucket, user):
+        if not self._fs.exists(filename):
+            raise FileNotFoundError(f"Move of nonexisting file {filename} "
+                                    f"from bucket {self.name} requested.")
+        move.move_file(self.fs, filename, target_bucket.fs, filename)
+        return change_file_bucket(filename, self.id, target_bucket.id, user)
 
     def __repr__(self):
         return "<FilestoreBucket {} at {}>".format(self.name, self.uri)

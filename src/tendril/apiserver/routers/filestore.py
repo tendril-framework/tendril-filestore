@@ -47,9 +47,21 @@ class BucketName(str):
         return cls(v)
 
 
-# class MoveRequest(BaseModel):
-#     bucket: BucketName
-#     filename: str
+class StoredFile(str):
+    @classmethod
+    def _get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if v not in _available_buckets:
+            raise ValueError(f"'{v}' is not in {_available_buckets}")
+        return cls(v)
+
+
+class MoveRequest(BaseModel):
+    to_bucket: BucketName
+    filename: str
 
 
 @filestore.get("/buckets")
@@ -63,7 +75,13 @@ async def upload_file_to_bucket(
         bucket: BucketName,
         file: UploadFile = File(...),
         user: AuthUserModel = auth_spec()):
-    bucket: FilestoreBucket = get_bucket(bucket)
+    try:
+        bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
     if not bucket.check_accepts(file.filename):
         raise HTTPException(
             status_code=415,
@@ -76,11 +94,39 @@ async def upload_file_to_bucket(
     # print(file, file.filename)
 
 
-# @filestore.post("/move")
-# async def move(request: Request, response: Response,
-#                to_bucket: BucketName,
-#                user: AuthUserModel = auth_spec()):
-#     return {'available_buckets': available_buckets()}
+@filestore_management.post("/{bucket}/move")
+async def move_file_from_bucket(
+        request: Request,
+        bucket: BucketName,
+        move_request: MoveRequest,
+        user: AuthUserModel = auth_spec()):
+
+    try:
+        source_bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
+
+    try:
+        target_bucket: FilestoreBucket = get_bucket(move_request.to_bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{move_request.to_bucket} is not a recognized filestore bucket'
+        )
+
+    try:
+        sf = source_bucket.move(filename=move_request.filename,
+                                target_bucket=target_bucket,
+                                user=user.id)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{move_request.filename} does not exist in the source bucket'
+        )
+    return {'storedfileid': sf.id}
 
 
 if FILESTORE_ENABLED:

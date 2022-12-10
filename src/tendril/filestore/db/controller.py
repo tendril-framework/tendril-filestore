@@ -77,6 +77,7 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
                                      fileinfo=fileinfo,
                                      user_id=user_id,
                                      type='stored_file')
+        # TODO Create Log Entry?
     else:
         if not overwrite:
             raise ValueError(f"File {filename} seems to already exist in bucket "
@@ -86,5 +87,18 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
         else:
             existing.fileinfo = fileinfo
             storedfile = existing
+            # TODO Create Log Entry?
+    session.add(storedfile)
+    return storedfile
+
+@with_db
+def change_file_bucket(filename, bucket, target_bucket, user, session=None):
+    storedfile: StoredFileModel = get_stored_file(filename, bucket, session=session)
+
+    target_bucket = preprocess_bucket(target_bucket)
+    storedfile.bucket_id = target_bucket
+
+    # TODO Create Log Entry?
+
     session.add(storedfile)
     return storedfile
