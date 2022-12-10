@@ -69,11 +69,11 @@ async def upload_file_to_bucket(
             status_code=415,
             detail=f"This bucket does not allow uploads with this extension"
         )
-
-    print(request.headers.get('authorization'))
-    print(user)
-    print(file, file.filename)
-    return {'available_buckets': available_buckets()}
+    sf = bucket.upload(file, user.id)
+    return {'storedfileid': sf.id}
+    # print(request.headers.get('authorization'))
+    # print(user)
+    # print(file, file.filename)
 
 
 # @filestore.post("/move")
