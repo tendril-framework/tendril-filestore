@@ -1,6 +1,7 @@
 
 
 import os
+import hashlib
 from fs import move
 from fs import open_fs
 from tendril import config
@@ -78,17 +79,33 @@ class FilestoreBucket(object):
         if modified:
             modified = info.modified.isoformat()
 
-        # TODO Get file hash
+        file.file.seek(0)
+        sha256hash = hashlib.sha256()
+        chunk = 0
+        while True:
+            chunk = file.file.read(2**10)
+            if not chunk: break
+            sha256hash.update(chunk)
 
-        fileinfo = {'props': {'size': info.size, 'created': created, 'modified': modified}}
+        fileinfo = {'props': {'size': info.size, 'created': created, 'modified': modified},
+                    'hash': {'sha256': sha256hash.hexdigest()}}
+
         sf = register_stored_file(filename, self._id, user, fileinfo)
 
         return sf
 
-    def move(self, filename, target_bucket, user):
+    def move(self, filename, target_bucket, user, overwrite=False):
         if not self._fs.exists(filename):
             raise FileNotFoundError(f"Move of nonexisting file {filename} "
                                     f"from bucket {self.name} requested.")
+
+        if target_bucket.fs.exists(filename):
+            if not overwrite:
+                raise FileExistsError(f'{filename} already exists in the bucket. '
+                                      f'Delete it first.')
+            logger.warning(f"Overwriting file {filename} in bucket {target_bucket.name}.")
+            target_bucket.fs.remove(filename)
+
         move.move_file(self.fs, filename, target_bucket.fs, filename)
         return change_file_bucket(filename, self.id, target_bucket.id, user)
 
