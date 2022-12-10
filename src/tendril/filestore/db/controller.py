@@ -2,8 +2,10 @@
 
 from sqlalchemy.orm.exc import NoResultFound
 from tendril.utils.db import with_db
+from tendril.authn.db.controller import preprocess_user
 
 from .model import FilestoreBucketModel
+from .model import StoredFileModel
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
@@ -21,7 +23,7 @@ def register_bucket(name, must_create=False, session=None):
         raise AttributeError("name cannot be None")
 
     try:
-        existing = get_bucket(name)
+        existing = get_bucket(name, session=session)
     except NoResultFound:
         bucket = FilestoreBucketModel(name=name)
     else:
@@ -31,3 +33,58 @@ def register_bucket(name, must_create=False, session=None):
             bucket = existing
     session.add(bucket)
     return bucket
+
+
+@with_db
+def preprocess_bucket(bucket, session=None):
+    if bucket is None:
+        raise AttributeError("bucket cannot be None")
+    if isinstance(bucket, int):
+        bucket_id = bucket
+    elif isinstance(bucket, FilestoreBucketModel):
+        bucket_id = bucket.id
+    else:
+        try:
+            bucket = get_bucket(bucket, session=session)
+            bucket_id = bucket.id
+        except NoResultFound:
+            raise AttributeError(f"Filestore bucket {bucket} does not seem to exist.")
+    return bucket_id
+
+
+@with_db
+def get_stored_file(filename, bucket, session=None):
+    q = session.query(StoredFileModel).filter_by(filename=filename)
+    if bucket:
+        bucket_id = preprocess_bucket(bucket, session=session)
+        q.filter_by(bucket_id=bucket_id)
+    return q.one()
+
+
+@with_db
+def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, session=None):
+    if filename is None:
+        raise AttributeError("name cannot be None")
+
+    bucket_id = preprocess_bucket(bucket, session=session)
+    user_id = preprocess_user(user, session=session)
+
+    try:
+        existing = get_stored_file(filename, bucket_id, session=session)
+    except NoResultFound:
+        storedfile = StoredFileModel(filename=filename,
+                                     bucket_id=bucket_id,
+                                     fileinfo=fileinfo,
+                                     user_id=user_id,
+                                     type='stored_file')
+    else:
+        if not overwrite:
+            raise ValueError(f"File {filename} seems to already exist in bucket "
+                             f"{bucket_id}. For now, you might have to manually "
+                             f"delete it from the database if this is something "
+                             f"you really want to do.")
+        else:
+            existing.fileinfo = fileinfo
+            storedfile = existing
+    session.add(storedfile)
+    return storedfile

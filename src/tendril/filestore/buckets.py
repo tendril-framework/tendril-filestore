@@ -4,6 +4,7 @@ import os
 from fs import open_fs
 from tendril import config
 from .db.controller import register_bucket
+from .db.controller import register_stored_file
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
@@ -11,6 +12,7 @@ logger = log.get_logger(__name__, log.DEFAULT)
 
 class FilestoreBucket(object):
     def __init__(self, uri, name, accept_ext=None, allow_delete=False):
+        self._id = None
         self._uri = uri
         self._name = name
         self._accept_ext = accept_ext or []
@@ -28,6 +30,10 @@ class FilestoreBucket(object):
         self._fs = open_fs(self._uri)
 
     @property
+    def id(self):
+        return self._id
+
+    @property
     def name(self):
         return self._name
 
@@ -40,11 +46,43 @@ class FilestoreBucket(object):
         return self._fs
 
     def _create_in_db(self):
-        register_bucket(name=self.name)
+        b = register_bucket(name=self.name)
+        self._id = b.id
 
     def check_accepts(self, filename):
         name, ext = os.path.splitext(filename)
         return ext in self._accept_ext
+
+    def upload(self, file, user, overwrite=True):
+        filename = file.filename
+
+        if self._fs.exists(filename):
+            if not overwrite:
+                raise FileExistsError(f'{filename} already exists in the bucket. Delete it first.')
+            logger.info(f"Overwriting file {filename} from bucket {self.name}.")
+            self._fs.remove(filename)
+
+        with self._fs.open(filename, 'wb') as target:
+            logger.debug(f"Writing file {filename} to bucker {self.name}")
+            target.write(file.file.read())
+
+        info = self._fs.getinfo(filename, namespaces=['details'])
+
+        created = info.created
+        if created:
+            created = info.created.isoformat()
+
+        modified = info.modified
+        if modified:
+            modified = info.modified.isoformat()
+
+        fileinfo = {'size': info.size, 'created': created, 'modified': modified}
+        sf = register_stored_file(filename, self._id, user, fileinfo)
+
+        return sf
+
+    def transfer(self, file, destination_bucket, user):
+        pass
 
     def __repr__(self):
         return "<FilestoreBucket {} at {}>".format(self.name, self.uri)

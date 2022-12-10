@@ -4,6 +4,7 @@ from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
 from sqlalchemy import ForeignKey
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy_json import mutable_json_type
 from sqlalchemy.dialects.postgresql import JSONB
@@ -26,7 +27,7 @@ class FilestoreBucketModel(DeclBase, BaseMixin):
 class StoredFileModel(ArtefactModel):
     _type_name = 'stored_file'
     id = Column(Integer, ForeignKey("Artefact.id"), primary_key=True)
-    filename = Column(String(255))
+    filename = Column(String(255), nullable=False)
     fileinfo = Column(mutable_json_type(dbtype=JSONB, nested=True))
     bucket_id = Column(Integer(),
                        ForeignKey('FilestoreBucket.id'), nullable=False)
@@ -35,3 +36,8 @@ class StoredFileModel(ArtefactModel):
     __mapper_args__ = {
         "polymorphic_identity": _type_name,
     }
+
+    __table_args__ = (
+        UniqueConstraint('filename', 'bucket_id'),
+    )
+
