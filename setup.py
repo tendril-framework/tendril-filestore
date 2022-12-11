@@ -30,6 +30,8 @@ def read(fname):
 
 core_dependencies = [
     'fs',
+    'tendril-artefacts',
+    'tendril-auth',
     'tendril-config',
     'tendril-utils-fsutils',
     'tendril-utils-db',
