@@ -9,6 +9,7 @@ from .db.controller import register_bucket
 from .db.controller import register_stored_file
 from .db.controller import change_file_bucket
 from .db.controller import get_storedfile_owner
+from .db.controller import delete_stored_file
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
@@ -106,13 +107,30 @@ class FilestoreBucket(object):
 
         if target_bucket.fs.exists(filename):
             if not overwrite:
-                raise FileExistsError(f'{filename} already exists in the bucket. '
-                                      f'Delete it first.')
+                raise FileExistsError(f'{filename} already exists in the {target_bucket.name} bucket. Delete it first.')
+            owner = get_storedfile_owner(filename, target_bucket.id)
+            if not target_bucket._allow_overwrite and owner.puid != user:
+                raise FileExistsError(f'{filename} already exists in the {target_bucket.name} bucket and owned by someone else.')
             logger.warning(f"Overwriting file {filename} in bucket {target_bucket.name}.")
-            target_bucket.fs.remove(filename)
+            target_bucket.remove(filename)
+
 
         move.move_file(self.fs, filename, target_bucket.fs, filename)
         return change_file_bucket(filename, self.id, target_bucket.id, user)
+
+    def delete(self, filename, user):
+        if not self._fs.exists(filename):
+            raise FileNotFoundError(f"Delete of nonexisting file {filename} "
+                                    f"from bucket {self.name} requested.")
+
+        if not self._allow_delete:
+            owner = get_storedfile_owner(filename, self._id)
+            if owner.puid != user:
+                raise PermissionError(f"Deletion of file {filename} "
+                                      f"not permitted from bucket {bucket}")
+
+        self.fs.remove(filename)
+        delete_stored_file(filename, self.id, user)
 
     def __repr__(self):
         return "<FilestoreBucket {} at {}>".format(self.name, self.uri)

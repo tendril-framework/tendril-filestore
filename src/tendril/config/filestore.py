@@ -46,8 +46,8 @@ def _filestore_config_template(filestore_name):
             'FILESTORE_{}_ALLOW_DELETE'.format(filestore_name),
             "False",
             "Whether the filestore API should allow deletion of files from this bucket. "
-            "Tendril internals can still delete files from this file store "
-            "irrespective of this setting."
+            "Users can still delete files owned by them, and Tendril internals can still "
+            "delete files from this file store irrespective of this setting."
         ),
         ConfigOption(
             'FILESTORE_{}_ALLOW_OVERWRITE'.format(filestore_name),

@@ -101,6 +101,7 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
     session.add(storedfile)
     return storedfile
 
+
 @with_db
 def change_file_bucket(filename, bucket, target_bucket, user, session=None):
     if not config.FILESTORE_ENABLED:
@@ -117,8 +118,19 @@ def change_file_bucket(filename, bucket, target_bucket, user, session=None):
     session.add(storedfile)
     return storedfile
 
+
 @with_db
 def get_storedfile_owner(filename, bucket, session=None):
     sf = get_stored_file(filename=filename, bucket=bucket, session=session)
     user = get_artefact_owner(sf.id, session=None)
     return user
+
+
+@with_db
+def delete_stored_file(filename, bucket, user, session=None):
+    sf = get_stored_file(filename=filename, bucket=bucket, session=session)
+
+    # TODO Create Log Entry and archive log?
+
+    session.delete(sf)
+    return

@@ -139,6 +139,35 @@ async def move_file_from_bucket(
     return {'storedfileid': sf.id}
 
 
+@filestore_management.post("/{bucket}/delete")
+async def delete_file_from_bucket(
+        request: Request,
+        bucket: BucketName,
+        filename: str,
+        user: AuthUserModel = auth_spec()):
+    try:
+        bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
+
+    try:
+        bucket.delete(filename, user.id)
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=403,
+            detail=str(e)
+        )
+    return {'deleted': filename}
+
+
 if FILESTORE_ENABLED:
     routers = [
         filestore,
