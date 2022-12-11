@@ -1,5 +1,6 @@
 
 
+import json
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -166,6 +167,36 @@ async def delete_file_from_bucket(
             detail=str(e)
         )
     return {'deleted': filename}
+
+
+@filestore_management.post("/{bucket}/ls")
+async def list_files_in_bucket(
+        request: Request,
+        bucket: BucketName,
+        user: AuthUserModel = auth_spec()):
+    try:
+        bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
+    return bucket.list()
+
+
+@filestore_management.post("/{bucket}/purge")
+async def purge_all_files_in_bucket(
+        request: Request,
+        bucket: BucketName,
+        user: AuthUserModel = auth_spec()):
+    try:
+        bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
+    return bucket.purge(user.id)
 
 
 if FILESTORE_ENABLED:

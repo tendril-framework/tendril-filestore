@@ -114,7 +114,7 @@ class FilestoreBucket(object):
             logger.warning(f"Overwriting file {filename} in bucket {target_bucket.name}.")
             target_bucket.remove(filename)
 
-
+        logger.debug(f"Moving file {filename} from bucket {self.name} to {target_bucket.name}")
         move.move_file(self.fs, filename, target_bucket.fs, filename)
         return change_file_bucket(filename, self.id, target_bucket.id, user)
 
@@ -127,10 +127,24 @@ class FilestoreBucket(object):
             owner = get_storedfile_owner(filename, self._id)
             if owner.puid != user:
                 raise PermissionError(f"Deletion of file {filename} "
-                                      f"not permitted from bucket {bucket}")
+                                      f"not permitted from bucket {self.name}")
 
+        logger.info(f"Deleting {filename} from bucket {bucket}")
         self.fs.remove(filename)
         delete_stored_file(filename, self.id, user)
+
+    def list(self):
+        return self.fs.listdir('/')
+
+    def purge(self, user):
+        if not self._allow_delete:
+            raise PermissionError(f"Deletion of files from bucket {self.name} "
+                                  f"is not permitted")
+        logger.warning(f"Purging all files from bucket {self.name}")
+        for filename in self.list():
+            logger.info(f"Deleting file {filename} from bucket {self.name}")
+            self.fs.remove(filename)
+            delete_stored_file(filename, self.id, user)
 
     def __repr__(self):
         return "<FilestoreBucket {} at {}>".format(self.name, self.uri)
