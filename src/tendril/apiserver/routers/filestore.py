@@ -62,6 +62,7 @@ class StoredFile(str):
 class MoveRequest(BaseModel):
     to_bucket: BucketName
     filename: str
+    overwrite : bool = False
 
 
 @filestore.get("/buckets")
@@ -73,6 +74,7 @@ async def available_buckets():
 async def upload_file_to_bucket(
         request: Request,
         bucket: BucketName,
+        overwrite: bool = False,
         file: UploadFile = File(...),
         user: AuthUserModel = auth_spec()):
     try:
@@ -87,7 +89,14 @@ async def upload_file_to_bucket(
             status_code=415,
             detail=f"This bucket does not allow uploads with this extension"
         )
-    sf = bucket.upload(file, user.id)
+
+    try:
+        sf = bucket.upload(file, user.id, overwrite=overwrite)
+    except FileExistsError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=str(e)
+        )
     return {'storedfileid': sf.id}
     # print(request.headers.get('authorization'))
     # print(user)
@@ -120,7 +129,8 @@ async def move_file_from_bucket(
     try:
         sf = source_bucket.move(filename=move_request.filename,
                                 target_bucket=target_bucket,
-                                user=user.id)
+                                user=user.id,
+                                overwrite=move_request.overwrite)
     except FileNotFoundError:
         raise HTTPException(
             status_code=404,

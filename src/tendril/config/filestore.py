@@ -50,6 +50,13 @@ def _filestore_config_template(filestore_name):
             "irrespective of this setting."
         ),
         ConfigOption(
+            'FILESTORE_{}_ALLOW_OVERWRITE'.format(filestore_name),
+            "False",
+            "Whether the filestore API should allow overwwriting of files in this bucket. "
+            "Users can still overwrite files owned by them, and Tendril internals can "
+            "still overwrite files in this file store irrespective of this setting."
+        ),
+        ConfigOption(
             'FILESTORE_{}_ACTUAL'.format(filestore_name),
             "None",
             "Path to store this filestore bucket. If not provided, it will be placed within "

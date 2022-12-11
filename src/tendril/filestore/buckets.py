@@ -8,18 +8,20 @@ from tendril import config
 from .db.controller import register_bucket
 from .db.controller import register_stored_file
 from .db.controller import change_file_bucket
+from .db.controller import get_storedfile_owner
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
 
 
 class FilestoreBucket(object):
-    def __init__(self, uri, name, accept_ext=None, allow_delete=False):
+    def __init__(self, uri, name, accept_ext=None, allow_delete=False, allow_overwrite=False):
         self._id = None
         self._uri = uri
         self._name = name
         self._accept_ext = accept_ext or []
         self._allow_delete = allow_delete
+        self._allow_overwrite = allow_overwrite
         self._create_in_db()
         self._prep_fs()
 
@@ -56,12 +58,15 @@ class FilestoreBucket(object):
         name, ext = os.path.splitext(filename)
         return ext in self._accept_ext
 
-    def upload(self, file, user, overwrite=True):
+    def upload(self, file, user, overwrite=False):
         filename = file.filename
 
         if self._fs.exists(filename):
             if not overwrite:
-                raise FileExistsError(f'{filename} already exists in the bucket. Delete it first.')
+                raise FileExistsError(f'{filename} already exists in the {self.name} bucket. Delete it first.')
+            owner = get_storedfile_owner(filename, self._id)
+            if not self._allow_overwrite and owner.puid != user:
+                raise FileExistsError(f'{filename} already exists in the {self.name} bucket and owned by someone else.')
             logger.warning(f"Overwriting file {filename} in bucket {self.name}.")
             self._fs.remove(filename)
 
@@ -129,8 +134,9 @@ def _bucket_config(bucket_name):
     enabled = getattr(config, "FILESTORE_{}_ENABLED".format(bucket_name))
     accept_ext = getattr(config, "FILESTORE_{}_ACCEPT_EXT".format(bucket_name))
     allow_delete = getattr(config, "FILESTORE_{}_ALLOW_DELETE".format(bucket_name))
+    allow_overwrite = getattr(config, "FILESTORE_{}_ALLOW_OVERWRITE".format(bucket_name))
     actual_uri = getattr(config, "FILESTORE_{}_ACTUAL_URI".format(bucket_name))
-    return enabled, accept_ext, allow_delete, actual_uri
+    return enabled, accept_ext, allow_delete, allow_overwrite, actual_uri
 
 
 def init():
@@ -140,12 +146,12 @@ def init():
                     "appropriate API on the filestore component.")
         return
     for bucket_name in config.FILESTORE_BUCKETS:
-        enabled, accept_ext, allow_delete, actual_uri = _bucket_config(bucket_name)
+        enabled, accept_ext, allow_delete, allow_overwrite, actual_uri = _bucket_config(bucket_name)
         if not enabled:
             logger.debug("Bucket '{}' not enabled. Skipping.".format(bucket_name))
             continue
         logger.info("Creating filestore bucket '{}' at {}".format(bucket_name, actual_uri))
-        bucket = FilestoreBucket(actual_uri, bucket_name, accept_ext, allow_delete)
+        bucket = FilestoreBucket(actual_uri, bucket_name, accept_ext, allow_delete, allow_overwrite)
         _available_buckets[bucket_name] = bucket
 
 

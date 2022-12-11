@@ -3,6 +3,7 @@
 from sqlalchemy.orm.exc import NoResultFound
 from tendril.utils.db import with_db
 from tendril.authn.db.controller import preprocess_user
+from tendril.artefacts.db.controller import get_artefact_owner
 from tendril import config
 
 from .model import FilestoreBucketModel
@@ -115,3 +116,9 @@ def change_file_bucket(filename, bucket, target_bucket, user, session=None):
 
     session.add(storedfile)
     return storedfile
+
+@with_db
+def get_storedfile_owner(filename, bucket, session=None):
+    sf = get_stored_file(filename=filename, bucket=bucket, session=session)
+    user = get_artefact_owner(sf.id, session=None)
+    return user
