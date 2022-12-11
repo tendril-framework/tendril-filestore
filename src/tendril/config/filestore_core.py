@@ -44,6 +44,13 @@ config_elements_filestore_core = [
         "individual bucket enabled config parameters to False for the other buckets."
     ),
     ConfigOption(
+        'FILESTORE_REMOTE_URI',
+        "None",
+        "Location of the actual filestore component, as a network URL. When set, this "
+        "option will be used in components where FILESTORE_ENABLED is False to provide "
+        "filestore functionality by proxying to the remote."
+    ),
+    ConfigOption(
         'FILESTORE_ACTUAL',
         "os.path.join(INSTANCE_ROOT, 'filestore')",
         "Default path to create filestore folders at. This may "

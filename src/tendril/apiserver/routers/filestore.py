@@ -16,7 +16,7 @@ from tendril.authn.users import AuthUserModel
 from tendril.authn.users import auth_spec
 from tendril.filestore.buckets import available_buckets
 from tendril.filestore.buckets import get_bucket
-from tendril.filestore.buckets import FilestoreBucket
+from tendril.filestore.actual import FilestoreBucket
 
 from tendril.config import FILESTORE_ENABLED
 
