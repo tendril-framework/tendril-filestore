@@ -67,7 +67,7 @@ class MoveRequest(BaseModel):
 
 
 @filestore.get("/buckets")
-async def available_buckets():
+async def get_available_buckets():
     return {'available_buckets': available_buckets()}
 
 
