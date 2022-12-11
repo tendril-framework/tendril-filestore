@@ -111,7 +111,7 @@ class FilestoreBucket(FilestoreBucketBase):
                 raise PermissionError(f"Deletion of file {filename} "
                                       f"not permitted from bucket {self.name}")
 
-        logger.info(f"Deleting {filename} from bucket {bucket}")
+        logger.info(f"Deleting {filename} from bucket {self.name}")
         self.fs.remove(filename)
         delete_stored_file(filename, self.id, user)
 
