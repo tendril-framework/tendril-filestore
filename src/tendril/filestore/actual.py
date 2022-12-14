@@ -6,12 +6,14 @@ import os
 from fs import open_fs
 from fs import move
 
+from tendril.authn.users import get_user_stub
 from tendril.filestore.base import FilestoreBucketBase
 from tendril.filestore.db.controller import register_bucket
 from tendril.filestore.db.controller import get_storedfile_owner
 from tendril.filestore.db.controller import register_stored_file
 from tendril.filestore.db.controller import change_file_bucket
 from tendril.filestore.db.controller import delete_stored_file
+from tendril.filestore.db.controller import get_stored_files
 
 from tendril.utils.db import with_db
 from tendril.utils.db import get_session
@@ -20,6 +22,12 @@ logger = log.get_logger(__name__, log.DEFAULT)
 
 
 class FilestoreBucket(FilestoreBucketBase):
+    _exclude_filenames = []
+
+    _exclude_directories = [
+        'lost+found'
+    ]
+
     def __init__(self, *args, **kwargs):
         super(FilestoreBucket, self).__init__(*args, **kwargs)
         self._fs = None
@@ -39,22 +47,30 @@ class FilestoreBucket(FilestoreBucketBase):
     def fs(self):
         return self._fs
 
+    @property
+    def id(self):
+        return self._id
+
     def _create_in_db(self):
         b = register_bucket(name=self.name)
         self._id = b.id
 
     @with_db
+    def _prep_for_upload(self, bucket, filename, user, overwrite=False, session=None):
+        if bucket.fs.exists(filename):
+            if not overwrite:
+                raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
+            # TODO If file exists in fs but not in DB?
+            owner = get_storedfile_owner(filename, bucket.id, session=session)
+            if not bucket.allow_overwrite and owner.puid != user:
+                raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket and owned by someone else.')
+            logger.warning(f"Overwriting file {filename} in bucket {bucket.name}.")
+            bucket.delete(filename, user, session=session)
+
+    @with_db
     def upload(self, file, user, overwrite=False, session=None):
         filename = file.filename
-
-        if self._fs.exists(filename):
-            if not overwrite:
-                raise FileExistsError(f'{filename} already exists in the {self.name} bucket. Delete it first.')
-            owner = get_storedfile_owner(filename, self._id, session=session)
-            if not self._allow_overwrite and owner.puid != user:
-                raise FileExistsError(f'{filename} already exists in the {self.name} bucket and owned by someone else.')
-            logger.warning(f"Overwriting file {filename} in bucket {self.name}.")
-            self._fs.remove(filename)
+        self._prep_for_upload(self, filename, user, overwrite)
 
         with self._fs.open(filename, 'wb') as target:
             logger.debug(f"Writing file {filename} to bucket {self.name}")
@@ -79,7 +95,8 @@ class FilestoreBucket(FilestoreBucketBase):
             sha256hash.update(chunk)
 
         fileinfo = {'props': {'size': info.size, 'created': created, 'modified': modified},
-                    'hash': {'sha256': sha256hash.hexdigest()}}
+                    'hash': {'sha256': sha256hash.hexdigest()},
+                    'ext': ''.join(info.suffixes)}
 
         sf = register_stored_file(filename, self._id, user, fileinfo, session=session)
 
@@ -91,14 +108,7 @@ class FilestoreBucket(FilestoreBucketBase):
             raise FileNotFoundError(f"Move of nonexisting file {filename} "
                                     f"from bucket {self.name} requested.")
 
-        if target_bucket.fs.exists(filename):
-            if not overwrite:
-                raise FileExistsError(f'{filename} already exists in the {target_bucket.name} bucket. Delete it first.')
-            owner = get_storedfile_owner(filename, target_bucket.id, session=session)
-            if not target_bucket._allow_overwrite and owner.puid != user:
-                raise FileExistsError(f'{filename} already exists in the {target_bucket.name} bucket and owned by someone else.')
-            logger.warning(f"Overwriting file {filename} in bucket {target_bucket.name}.")
-            target_bucket.delete(filename, user)
+        self._prep_for_upload(target_bucket, filename, user, overwrite)
 
         logger.debug(f"Moving file {filename} from bucket {self.name} to {target_bucket.name}")
         move.move_file(self.fs, filename, target_bucket.fs, filename)
@@ -120,8 +130,21 @@ class FilestoreBucket(FilestoreBucketBase):
         self.fs.remove(filename)
         delete_stored_file(filename, self.id, user, session=session)
 
-    def list(self):
-        return self.fs.listdir('/')
+    def _list(self, page=None):
+        for f in self.fs.filterdir('/', page=page,
+                                   exclude_files=self._exclude_filenames,
+                                   exclude_dirs=self._exclude_directories):
+            yield f.name
+
+    def list(self, page=None):
+        return list(self._list(page=page))
+
+    @with_db
+    def list_info(self, page=None, session=None):
+        items = self.list(page)
+        infos = get_stored_files(filenames=items, bucket=self.id, session=session)
+        return {x.filename: {'info': x.fileinfo,
+                             'owner': get_user_stub(x.user.puid)} for x in infos}
 
     def purge(self, user):
         if not self._allow_delete:

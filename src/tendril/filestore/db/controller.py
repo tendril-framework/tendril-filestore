@@ -68,6 +68,15 @@ def get_stored_file(filename, bucket, session=None):
 
 
 @with_db
+def get_stored_files(filenames, bucket, session=None):
+    bucket_id = preprocess_bucket(bucket, session=None)
+    q = session.query(StoredFileModel).\
+        filter_by(bucket_id=bucket_id).\
+        filter(StoredFileModel.filename.in_(filenames))
+    return q.all()
+
+
+@with_db
 def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, session=None):
     if not config.FILESTORE_ENABLED:
         raise EnvironmentError("Filestore not enabled on this component. "

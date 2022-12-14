@@ -24,6 +24,18 @@ class FilestoreBucketBase(object):
     def uri(self):
         return self._uri
 
+    @property
+    def allow_overwrite(self):
+        return self._allow_overwrite
+
+    @property
+    def allow_delete(self):
+        return self._allow_delete
+
+    @property
+    def accept_ext(self):
+        return self._accept_ext
+
     def check_accepts(self, filename):
         name, ext = os.path.splitext(filename)
         return ext in self._accept_ext

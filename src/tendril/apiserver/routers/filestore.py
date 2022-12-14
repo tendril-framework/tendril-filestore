@@ -181,7 +181,7 @@ async def list_files_in_bucket(
             status_code=404,
             detail=f'{bucket} is not a recognized filestore bucket'
         )
-    return bucket.list()
+    return bucket.list_info()
 
 
 @filestore_management.post("/{bucket}/purge")
