@@ -13,7 +13,7 @@ from tendril.filestore.db.controller import get_storedfile_owner
 from tendril.filestore.db.controller import register_stored_file
 from tendril.filestore.db.controller import change_file_bucket
 from tendril.filestore.db.controller import delete_stored_file
-from tendril.filestore.db.controller import get_stored_files
+from tendril.filestore.db.controller import get_paginated_stored_files
 
 from tendril.utils.db import with_db
 from tendril.utils.db import get_session
@@ -140,11 +140,10 @@ class FilestoreBucket(FilestoreBucketBase):
         return list(self._list(page=page))
 
     @with_db
-    def list_info(self, page=None, session=None):
+    def list_info(self, params, page=None, session=None):
         items = self.list(page)
-        infos = get_stored_files(filenames=items, bucket=self.id, session=session)
-        return {x.filename: {'info': x.fileinfo,
-                             'owner': get_user_stub(x.user.puid)} for x in infos}
+        return get_paginated_stored_files(
+            params, filenames=items, bucket=self.id, session=session)
 
     def purge(self, user):
         if not self._allow_delete:

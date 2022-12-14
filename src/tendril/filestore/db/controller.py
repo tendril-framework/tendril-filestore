@@ -1,7 +1,10 @@
 
 
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm.exc import NoResultFound
+
 from tendril.utils.db import with_db
+from tendril.authn.db.model import User
 from tendril.authn.db.controller import preprocess_user
 from tendril.artefacts.db.controller import get_artefact_owner
 from tendril import config
@@ -68,12 +71,28 @@ def get_stored_file(filename, bucket, session=None):
 
 
 @with_db
-def get_stored_files(filenames, bucket, session=None):
+def get_stored_files(bucket, filenames=None, session=None):
     bucket_id = preprocess_bucket(bucket, session=None)
-    q = session.query(StoredFileModel).\
-        filter_by(bucket_id=bucket_id).\
-        filter(StoredFileModel.filename.in_(filenames))
+    filters = [StoredFileModel.bucket_id == bucket_id]
+
+    if filenames:
+        filters.append(StoredFileModel.filename.in_(filenames))
+
+    q = session.query(StoredFileModel).filter(*filters)
     return q.all()
+
+
+@with_db
+def get_paginated_stored_files(params, bucket, filenames=None, session=None):
+    bucket_id = preprocess_bucket(bucket, session=None)
+    filters = [StoredFileModel.bucket_id == bucket_id]
+
+    if filenames:
+        filters.append(StoredFileModel.filename.in_(filenames))
+
+    q = session.query(StoredFileModel.filename, StoredFileModel.fileinfo, User.puid).\
+        join(User).filter(*filters)
+    return paginate(q, params)
 
 
 @with_db
