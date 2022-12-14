@@ -1,6 +1,7 @@
 
 
 import json
+import datetime
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -8,15 +9,24 @@ from fastapi import File
 from fastapi import UploadFile
 from fastapi import HTTPException
 from fastapi import Body
+from fastapi_pagination import Page
+from fastapi_pagination import Params
+from fastapi_pagination import add_pagination
 
-from pydantic import BaseModel
+from typing import Union
+from pydantic import Field
+from pydantic import validator
 
-from tendril.authn.users import authn_dependency
-from tendril.authn.users import AuthUserModel
 from tendril.authn.users import auth_spec
+from tendril.authn.users import AuthUserModel
+from tendril.authn.users import authn_dependency
+from tendril.authn.users import UserStubTMixin
+
 from tendril.filestore.buckets import available_buckets
 from tendril.filestore.buckets import get_bucket
 from tendril.filestore.actual import FilestoreBucket
+
+from tendril.utils.pydantic import TendrilTBaseModel
 
 from tendril.config import FILESTORE_ENABLED
 
@@ -60,7 +70,7 @@ class StoredFile(str):
         return cls(v)
 
 
-class MoveRequest(BaseModel):
+class MoveRequest(TendrilTBaseModel):
     to_bucket: BucketName
     filename: str
     overwrite : bool = False
@@ -169,10 +179,33 @@ async def delete_file_from_bucket(
     return {'deleted': filename}
 
 
-@filestore_management.post("/{bucket}/ls")
+class StoredFilePropsTModel(TendrilTBaseModel):
+    size: int = Field(..., example=714794)
+    created: Union[datetime.datetime, None]
+    modified: Union[datetime.datetime, None]
+
+
+class StoredFileHashTModel(TendrilTBaseModel):
+    sha256: str = Field(..., example='e4dd9b81d05aec0ce7f3a66b9efd15a13da5dae6e6672b84c7a75b3504c22d43')
+
+
+class StoredFileInfoTModel(TendrilTBaseModel):
+    ext: str = Field(..., example='.jpg')
+    hash: StoredFileHashTModel
+    props: StoredFilePropsTModel
+
+
+class StoredFileTModel(UserStubTMixin(out='owner'), TendrilTBaseModel):
+    filename: str = Field(..., example="some_filename.jpg")
+    fileinfo: StoredFileInfoTModel
+
+
+@filestore_management.post("/{bucket}/ls",
+                           response_model=Page[StoredFileTModel])
 async def list_files_in_bucket(
         request: Request,
         bucket: BucketName,
+        params: Params = Depends(),
         user: AuthUserModel = auth_spec()):
     try:
         bucket: FilestoreBucket = get_bucket(bucket)
@@ -181,7 +214,7 @@ async def list_files_in_bucket(
             status_code=404,
             detail=f'{bucket} is not a recognized filestore bucket'
         )
-    return bucket.list_info()
+    return bucket.list_info(params)
 
 
 @filestore_management.post("/{bucket}/purge")
