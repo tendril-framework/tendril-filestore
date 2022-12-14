@@ -139,11 +139,10 @@ class FilestoreBucket(FilestoreBucketBase):
     def list(self, page=None):
         return list(self._list(page=page))
 
-    @with_db
-    def list_info(self, params, page=None, session=None):
+    def list_info(self, params, page=None):
         items = self.list(page)
         return get_paginated_stored_files(
-            params, filenames=items, bucket=self.id, session=session)
+            params, filenames=items, bucket=self.id)
 
     def purge(self, user):
         if not self._allow_delete:
