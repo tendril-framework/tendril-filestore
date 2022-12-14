@@ -98,7 +98,7 @@ class FilestoreBucket(FilestoreBucketBase):
             if not target_bucket._allow_overwrite and owner.puid != user:
                 raise FileExistsError(f'{filename} already exists in the {target_bucket.name} bucket and owned by someone else.')
             logger.warning(f"Overwriting file {filename} in bucket {target_bucket.name}.")
-            target_bucket.delete(filename)
+            target_bucket.delete(filename, user)
 
         logger.debug(f"Moving file {filename} from bucket {self.name} to {target_bucket.name}")
         move.move_file(self.fs, filename, target_bucket.fs, filename)
