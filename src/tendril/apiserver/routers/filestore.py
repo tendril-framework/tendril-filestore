@@ -20,7 +20,7 @@ from pydantic import validator
 from tendril.authn.users import auth_spec
 from tendril.authn.users import AuthUserModel
 from tendril.authn.users import authn_dependency
-from tendril.authn.users import UserStubTMixin
+from tendril.authn.pydantic import UserStubTMixin
 
 from tendril.filestore.buckets import available_buckets
 from tendril.filestore.buckets import get_bucket
