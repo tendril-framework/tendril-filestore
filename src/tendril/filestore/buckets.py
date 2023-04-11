@@ -25,7 +25,8 @@ def _bucket_config(bucket_name):
     allow_delete = getattr(config, "FILESTORE_{}_ALLOW_DELETE".format(bucket_name))
     allow_overwrite = getattr(config, "FILESTORE_{}_ALLOW_OVERWRITE".format(bucket_name))
     actual_uri = getattr(config, "FILESTORE_{}_ACTUAL_URI".format(bucket_name))
-    return enabled, accept_ext, allow_delete, allow_overwrite, actual_uri
+    expose_uri = getattr(config, "FILESTORE_{}_EXPOSE_URI".format(bucket_name))
+    return enabled, accept_ext, expose_uri, allow_delete, allow_overwrite, actual_uri
 
 
 def init_remote():
@@ -40,21 +41,21 @@ def init_remote():
         # Get remote filestore bucket list from FILESTORE_REMOTE_URI/filestore/buckets
         remote_bucket_list = ['incoming', 'cdn', 'outgoing']
         for bucket_name in config.FILESTORE_BUCKETS:
-            enabled, accept_ext, allow_delete, allow_overwrite, _ = _bucket_config(bucket_name)
+            enabled, accept_ext, expose_uri, allow_delete, allow_overwrite, _ = _bucket_config(bucket_name)
             if enabled and bucket_name in remote_bucket_list:
                 logger.info(f"Creating proxy to the remote filestore bucket {bucket_name} at {uri}.")
-                bucket = FilestoreBucketRemote(uri, bucket_name, accept_ext, allow_delete, allow_overwrite)
+                bucket = FilestoreBucketRemote(uri, bucket_name, expose_uri, accept_ext, allow_delete, allow_overwrite)
                 _available_buckets[bucket_name] = bucket
 
 
 def init_actual():
     for bucket_name in config.FILESTORE_BUCKETS:
-        enabled, accept_ext, allow_delete, allow_overwrite, actual_uri = _bucket_config(bucket_name)
+        enabled, accept_ext, expose_uri, allow_delete, allow_overwrite, actual_uri = _bucket_config(bucket_name)
         if not enabled:
             logger.debug("Bucket '{}' not enabled. Skipping.".format(bucket_name))
             continue
         logger.info("Creating filestore bucket '{}' at {}".format(bucket_name, actual_uri))
-        bucket = FilestoreBucket(actual_uri, bucket_name, accept_ext, allow_delete, allow_overwrite)
+        bucket = FilestoreBucket(actual_uri, bucket_name, expose_uri, accept_ext, allow_delete, allow_overwrite)
         _available_buckets[bucket_name] = bucket
 
 

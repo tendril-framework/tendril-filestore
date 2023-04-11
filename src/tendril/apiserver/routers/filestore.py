@@ -73,7 +73,7 @@ class StoredFile(str):
 class MoveRequest(TendrilTBaseModel):
     to_bucket: BucketName
     filename: str
-    overwrite : bool = False
+    overwrite: bool = False
 
 
 @filestore.get("/buckets")

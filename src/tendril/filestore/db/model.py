@@ -1,5 +1,6 @@
 
 
+from urllib.parse import urljoin
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
@@ -32,6 +33,10 @@ class StoredFileModel(ArtefactModel):
     bucket_id = Column(Integer(),
                        ForeignKey('FilestoreBucket.id'), nullable=False)
     bucket = relationship("FilestoreBucketModel", back_populates="files")
+
+    @property
+    def expose_uri(self):
+        return urljoin(self.bucket.expose_uri, self.filename)
 
     __mapper_args__ = {
         "polymorphic_identity": _type_name,

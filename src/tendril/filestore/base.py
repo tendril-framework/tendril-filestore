@@ -4,10 +4,12 @@ import os
 
 
 class FilestoreBucketBase(object):
-    def __init__(self, uri, name, accept_ext=None, allow_delete=False, allow_overwrite=False):
+    def __init__(self, uri, name, expose_uri=None,
+                 accept_ext=None, allow_delete=False, allow_overwrite=False):
         self._id = None
         self._uri = uri
         self._name = name
+        self._expose_uri = expose_uri or ''
         self._accept_ext = accept_ext or []
         self._allow_delete = allow_delete
         self._allow_overwrite = allow_overwrite

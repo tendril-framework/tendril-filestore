@@ -57,6 +57,14 @@ def _filestore_config_template(filestore_name):
             "still overwrite files in this file store irrespective of this setting."
         ),
         ConfigOption(
+            'FILESTORE_{}_EXPOSE_URI'.format(filestore_name),
+            "None",
+            "URI at which the filestore content is exposed. Tendril filestore code will "
+            "simply construct URIs for individual files using string operations. The "
+            "URI may be public, private or entirely invalid depending on the bucket and "
+            "ingress configurations, outside of Tendril."
+        ),
+        ConfigOption(
             'FILESTORE_{}_ACTUAL'.format(filestore_name),
             "None",
             "Path to store this filestore bucket. If not provided, it will be placed within "
