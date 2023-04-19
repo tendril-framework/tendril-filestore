@@ -1,5 +1,7 @@
 
 
+from functools import partial
+from sqlalchemy import select
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -82,17 +84,42 @@ def get_stored_files(bucket, filenames=None, session=None):
     return q.all()
 
 
+def _stored_file_transformer(items, include_owner=False):
+    if not include_owner:
+        return [{'filename': x[0], 'fileinfo': x[1]}
+                for x in items]
+    return [
+        {'filename': x[0],
+         'fileinfo': x[1],
+         'puid': x[2]}
+        for x in items
+    ]
+
+
 @with_db
-def get_paginated_stored_files(params, bucket, filenames=None, session=None):
+def get_paginated_stored_files(bucket, pagination_params=None, filenames=None, include_owner=False, session=None):
     bucket_id = preprocess_bucket(bucket, session=None)
     filters = [StoredFileModel.bucket_id == bucket_id]
 
     if filenames:
         filters.append(StoredFileModel.filename.in_(filenames))
 
-    q = session.query(StoredFileModel.filename, StoredFileModel.fileinfo, User.puid).\
-        join(User).filter(*filters)
-    return paginate(q, params)
+    if include_owner:
+        stmt = select(StoredFileModel.filename, StoredFileModel.fileinfo, User.puid)\
+            .join(StoredFileModel.user)\
+            .filter(*filters)
+    else:
+        stmt = select(StoredFileModel.filename, StoredFileModel.fileinfo)\
+            .filter(*filters)
+
+    if pagination_params:
+        return paginate(query=stmt, conn=session, unique=False,
+                        params=pagination_params,
+                        transformer=partial(_stored_file_transformer,
+                                            include_owner=include_owner))
+    else:
+        return _stored_file_transformer(session.execute(stmt).all(),
+                                        include_owner=include_owner)
 
 
 @with_db
