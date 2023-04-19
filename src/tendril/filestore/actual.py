@@ -5,6 +5,7 @@ import os
 
 from fs import open_fs
 from fs import move
+from sqlalchemy.exc import NoResultFound
 
 from tendril.authn.users import get_user_stub
 from tendril.filestore.base import FilestoreBucketBase
@@ -56,16 +57,26 @@ class FilestoreBucket(FilestoreBucketBase):
         self._id = b.id
 
     @with_db
-    def _prep_for_upload(self, bucket, filename, user, overwrite=False, session=None):
+    def _prep_for_upload(self, bucket, filename, user, overwrite=False, auto_prune=True, session=None):
         if bucket.fs.exists(filename):
             if not overwrite:
                 raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
-            # TODO If file exists in fs but not in DB?
-            owner = get_storedfile_owner(filename, bucket.id, session=session)
-            if not bucket.allow_overwrite and owner.puid != user:
-                raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket and owned by someone else.')
-            logger.warning(f"Overwriting file {filename} in bucket {bucket.name}.")
-            bucket.delete(filename, user, session=session)
+            try:
+                owner = get_storedfile_owner(filename, bucket.id, session=session)
+            except NoResultFound:
+                # file exists in fs but not in DB
+                if not auto_prune:
+                    raise FileExistsError(f"'{filename}' already exists in the '{bucket.name}' filesystem but "
+                                          f"not in the database. This needs to be manually resolved.")
+                logger.warning(f"'{filename}' exists in the '{bucket.name}' filesystem but "
+                               f"not in the database. Pruning. Possible Data Loss.")
+                bucket.fs.remove(filename)
+            else:
+                if not bucket.allow_overwrite and owner.puid != user:
+                    raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
+                                          f'and owned by someone else.')
+                logger.warning(f"Overwriting file {filename} in bucket {bucket.name}.")
+                bucket.delete(filename, user, session=session)
 
     @with_db
     def upload(self, file, user, overwrite=False, session=None):
@@ -139,10 +150,14 @@ class FilestoreBucket(FilestoreBucketBase):
     def list(self, page=None):
         return list(self._list(page=page))
 
-    def list_info(self, params, page=None):
+    def list_info(self, include_owner=False,
+                  pagination_params=None, page=None):
         items = self.list(page)
         return get_paginated_stored_files(
-            params, filenames=items, bucket=self.id)
+            pagination_params=pagination_params,
+            filenames=items, bucket=self.id,
+            include_owner=include_owner
+        )
 
     def purge(self, user):
         if not self._allow_delete:
