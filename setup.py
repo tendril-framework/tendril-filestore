@@ -35,6 +35,7 @@ core_dependencies = [
     'tendril-config',
     'tendril-utils-fsutils',
     'tendril-utils-db',
+    'tendril-utils-www',
 ]
 
 install_requires = core_dependencies + ['wheel']
