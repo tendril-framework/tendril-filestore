@@ -1,7 +1,10 @@
 
+
+import asyncio
 from tendril import config
 from tendril.filestore.actual import FilestoreBucket
 from tendril.filestore.remote import FilestoreBucketRemote
+from tendril.filestore.remote import get_remote_bucket_list
 
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
@@ -38,8 +41,7 @@ def init_remote():
     else:
         logger.info("Attempting to make a connection to the remote filestore.")
         uri = config.FILESTORE_REMOTE_URI
-        # Get remote filestore bucket list from FILESTORE_REMOTE_URI/filestore/buckets
-        remote_bucket_list = ['incoming', 'cdn', 'outgoing']
+        remote_bucket_list = asyncio.run(get_remote_bucket_list(uri))
         for bucket_name in config.FILESTORE_BUCKETS:
             enabled, accept_ext, expose_uri, allow_delete, allow_overwrite, _ = _bucket_config(bucket_name)
             if enabled and bucket_name in remote_bucket_list:

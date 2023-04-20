@@ -51,6 +51,27 @@ config_elements_filestore_core = [
         "filestore functionality by proxying to the remote."
     ),
     ConfigOption(
+        'FILESTORE_REMOTE_AUDIENCE',
+        "None",
+        "API Audience to use when connecting to the actual filestore component. This is "
+        "presently not configured per-bucket and is intended for use only as an Auth0 M2M "
+        "application"
+    ),
+    ConfigOption(
+        'FILESTORE_REMOTE_CLIENT_ID',
+        "None",
+        "Auth0 Client ID to use when connecting to the actual filestore component. This is "
+        "presently not configured per-bucket and is intended for use only as an Auth0 M2M "
+        "application", masked=True
+    ),
+    ConfigOption(
+        'FILESTORE_REMOTE_CLIENT_SECRET',
+        "None",
+        "Auth0 Client Secret to use when connecting to the actual filestore component. This is "
+        "presently not configured per-bucket and is intended for use only as an Auth0 M2M "
+        "application", masked=True
+    ),
+    ConfigOption(
         'FILESTORE_ACTUAL',
         "os.path.join(INSTANCE_ROOT, 'filestore')",
         "Default path to create filestore folders at. This may "
@@ -62,4 +83,4 @@ config_elements_filestore_core = [
 def load(manager):
     logger.debug("Loading {0}".format(__name__))
     manager.load_elements(config_elements_filestore_core,
-                          doc="Tendril Filestore Core Configuration")
+                          doc="Filestore Core Configuration")
