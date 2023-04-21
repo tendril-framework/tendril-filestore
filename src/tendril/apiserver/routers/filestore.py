@@ -1,5 +1,6 @@
 
 
+from typing import List
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -139,9 +140,25 @@ async def delete_file_from_bucket(
     return {'deleted': filename}
 
 
-@filestore_management.post("/{bucket}/ls",
-                           response_model=Page[StoredFileTModel],
-                           response_model_exclude_none=True)
+@filestore_management.get("/{bucket}/ls_fs",
+                          response_model=List[str])
+async def list_files_in_bucket_fs(
+        request: Request,
+        bucket: BucketName,
+        user: AuthUserModel = auth_spec()):
+    try:
+        bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
+    return bucket.list()
+
+
+@filestore_management.get("/{bucket}/ls",
+                          response_model=Page[StoredFileTModel],
+                          response_model_exclude_none=True)
 async def list_files_in_bucket(
         request: Request,
         bucket: BucketName,
