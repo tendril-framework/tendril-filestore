@@ -48,10 +48,6 @@ class FilestoreBucket(FilestoreBucketBase):
     def fs(self):
         return self._fs
 
-    @property
-    def id(self):
-        return self._id
-
     def _create_in_db(self):
         b = register_bucket(name=self.name)
         self._id = b.id
@@ -150,13 +146,15 @@ class FilestoreBucket(FilestoreBucketBase):
     def list(self, page=None):
         return list(self._list(page=page))
 
-    def list_info(self, include_owner=False,
+    def list_info(self, include_owner=False, filenames=None,
                   pagination_params=None, page=None):
-        items = self.list(page)
+        kwargs = {}
+        if filenames:
+            kwargs['filenames'] = filenames
         return get_paginated_stored_files(
             pagination_params=pagination_params,
-            filenames=items, bucket=self.id,
-            include_owner=include_owner
+            bucket=self.id, include_owner=include_owner,
+            **kwargs
         )
 
     def purge(self, user):
