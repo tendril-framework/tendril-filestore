@@ -35,29 +35,42 @@ class FilestoreBucketRemote(FilestoreBucketBase):
             'auth': _authenticator
         }
 
-    async def upload(self, file, user, overwrite=False):
-        raise NotImplementedError
+    @with_async_client_cl()
+    async def upload(self, file, overwrite=False, client=None):
+        response = await client.post(f'/v1/filestore/{self.name}/upload',
+                                     files={'file': file})
+        print(response)
+        return response
 
-    async def move(self, filename, target_bucket, user, overwrite=False):
-        raise NotImplementedError
-
-    async def delete(self, filename, user):
-        raise NotImplementedError
-
-    async def list(self):
+    @with_async_client_cl()
+    async def move(self, filename, target_bucket, user, overwrite=False, client=None):
         raise NotImplementedError
 
     @with_async_client_cl()
-    async def list_info(self, include_owner=False, filenames=None, client=None):
-        response = await client.post(f'/v1/filestore/{self.name}/ls',
-                                     params={'include_owner': include_owner})
+    async def delete(self, filename, user, client=None):
+        raise NotImplementedError
+
+    @with_async_client_cl()
+    async def list(self, client=None):
+        response = await client.get(f'/v1/filestore/{self.name}/ls_fs')
         return response.json()
 
-    async def purge(self, user):
+    @with_async_client_cl()
+    async def list_info(self, include_owner=False, filenames=None, client=None):
+        response = await client.get(f'/v1/filestore/{self.name}/ls',
+                                    params={'include_owner': include_owner})
+        print(response)
+        print(response.content)
+        return response.json()['items']
+
+    @with_async_client_cl()
+    async def purge(self, user, client=None):
         raise NotImplementedError
 
-    async def prune(self, user):
+    @with_async_client_cl()
+    async def prune(self, user, client=None):
         raise NotImplementedError
 
-    async def find(self, spec):
+    @with_async_client_cl()
+    async def find(self, spec, client=None):
         raise NotImplementedError
