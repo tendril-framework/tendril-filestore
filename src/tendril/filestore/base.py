@@ -48,20 +48,20 @@ class FilestoreBucketBase(object):
     def move(self, filename, target_bucket, user, overwrite=False):
         raise NotImplementedError
 
-    def delete(self, filename, user):
-        raise NotImplementedError
-
     def list(self, page=None):
         raise NotImplementedError
 
     def list_info(self, include_owner=False, filenames=None):
         raise NotImplementedError
 
+    def find(self, spec):
+        raise NotImplementedError
+
+    def delete(self, filename, user):
+        raise NotImplementedError
+
     def purge(self, user):
         raise NotImplementedError
 
     def prune(self, user):
-        raise NotImplementedError
-
-    def find(self, spec):
         raise NotImplementedError

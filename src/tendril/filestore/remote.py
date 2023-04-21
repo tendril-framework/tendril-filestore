@@ -53,10 +53,6 @@ class FilestoreBucketRemote(FilestoreBucketBase):
         return response.json()
 
     @with_async_client_cl()
-    async def delete(self, filename, user, client=None):
-        raise NotImplementedError
-
-    @with_async_client_cl()
     async def list(self, client=None):
         response = await client.get(f'/v1/filestore/{self.name}/ls_fs')
         response.raise_for_status()
@@ -70,7 +66,11 @@ class FilestoreBucketRemote(FilestoreBucketBase):
         return response.json()['items']
 
     @with_async_client_cl()
-    async def purge(self, user, client=None):
+    async def find(self, spec, client=None):
+        raise NotImplementedError
+
+    @with_async_client_cl()
+    async def delete(self, filename, user, client=None):
         raise NotImplementedError
 
     @with_async_client_cl()
@@ -78,5 +78,5 @@ class FilestoreBucketRemote(FilestoreBucketBase):
         raise NotImplementedError
 
     @with_async_client_cl()
-    async def find(self, spec, client=None):
+    async def purge(self, user, client=None):
         raise NotImplementedError

@@ -121,22 +121,6 @@ class FilestoreBucket(FilestoreBucketBase):
         move.move_file(self.fs, filename, target_bucket.fs, filename)
         return change_file_bucket(filename, self.id, target_bucket.id, user, session=session)
 
-    @with_db
-    def delete(self, filename, user, session=None):
-        if not self._fs.exists(filename):
-            raise FileNotFoundError(f"Delete of nonexisting file {filename} "
-                                    f"from bucket {self.name} requested.")
-
-        if not self._allow_delete:
-            owner = get_storedfile_owner(filename, self._id, session=session)
-            if owner.puid != user:
-                raise PermissionError(f"Deletion of file {filename} "
-                                      f"not permitted from bucket {self.name}")
-
-        logger.info(f"Deleting {filename} from bucket {self.name}")
-        self.fs.remove(filename)
-        delete_stored_file(filename, self.id, user, session=session)
-
     def _list(self, page=None):
         for f in self.fs.filterdir('/', page=page,
                                    exclude_files=self._exclude_filenames,
@@ -156,6 +140,22 @@ class FilestoreBucket(FilestoreBucketBase):
             bucket=self.id, include_owner=include_owner,
             **kwargs
         )
+
+    @with_db
+    def delete(self, filename, user, session=None):
+        if not self._fs.exists(filename):
+            raise FileNotFoundError(f"Delete of nonexisting file {filename} "
+                                    f"from bucket {self.name} requested.")
+
+        if not self._allow_delete:
+            owner = get_storedfile_owner(filename, self._id, session=session)
+            if owner.puid != user:
+                raise PermissionError(f"Deletion of file {filename} "
+                                      f"not permitted from bucket {self.name}")
+
+        logger.info(f"Deleting {filename} from bucket {self.name}")
+        self.fs.remove(filename)
+        delete_stored_file(filename, self.id, user, session=session)
 
     def purge(self, user):
         if not self._allow_delete:
