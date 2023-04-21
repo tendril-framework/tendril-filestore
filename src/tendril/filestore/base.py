@@ -51,7 +51,10 @@ class FilestoreBucketBase(object):
     def delete(self, filename, user):
         raise NotImplementedError
 
-    def list(self):
+    def list(self, page=None):
+        raise NotImplementedError
+
+    def list_info(self, include_owner=False, filenames=None):
         raise NotImplementedError
 
     def purge(self, user):
