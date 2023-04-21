@@ -39,12 +39,18 @@ class FilestoreBucketRemote(FilestoreBucketBase):
     async def upload(self, file, overwrite=False, client=None):
         response = await client.post(f'/v1/filestore/{self.name}/upload',
                                      files={'file': file})
-        print(response)
-        return response
+        response.raise_for_status()
+        return response.json()
 
     @with_async_client_cl()
-    async def move(self, filename, target_bucket, user, overwrite=False, client=None):
-        raise NotImplementedError
+    async def move(self, filename, target_bucket, overwrite=False, client=None):
+        data = {"to_bucket": target_bucket,
+                "filename": filename,
+                "overwrite": overwrite}
+        response = await client.post(f'/v1/filestore/{self.name}/move',
+                                     json=data)
+        response.raise_for_status()
+        return response.json()
 
     @with_async_client_cl()
     async def delete(self, filename, user, client=None):
@@ -53,14 +59,14 @@ class FilestoreBucketRemote(FilestoreBucketBase):
     @with_async_client_cl()
     async def list(self, client=None):
         response = await client.get(f'/v1/filestore/{self.name}/ls_fs')
+        response.raise_for_status()
         return response.json()
 
     @with_async_client_cl()
     async def list_info(self, include_owner=False, filenames=None, client=None):
         response = await client.get(f'/v1/filestore/{self.name}/ls',
                                     params={'include_owner': include_owner})
-        print(response)
-        print(response.content)
+        response.raise_for_status()
         return response.json()['items']
 
     @with_async_client_cl()
