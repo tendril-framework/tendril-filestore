@@ -7,7 +7,8 @@ from fs import open_fs
 from fs import move
 from sqlalchemy.exc import NoResultFound
 
-from tendril.authn.users import get_user_stub
+# Causes a circular import issue. Does not actually seem to be needed.
+# from tendril.authn.users import get_user_stub
 from tendril.filestore.base import FilestoreBucketBase
 from tendril.filestore.db.controller import register_bucket
 from tendril.filestore.db.controller import get_storedfile_owner
