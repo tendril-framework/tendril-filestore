@@ -60,26 +60,34 @@ class FilestoreBucket(FilestoreBucketBase):
         if subdir:
             self.fs.makedirs(subdir, recreate=True)
         if bucket.fs.exists(filename):
+            # File exists in the filesystem
             if not overwrite and not auto_prune:
+                # We have no way to remove the existing file.
                 raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
             try:
                 owner = get_storedfile_owner(filename, bucket.id, session=session)
             except NoResultFound:
-                # file exists in fs but not in DB
+                # File exists in fs but not in the DB.
                 if not auto_prune:
+                    # We aren't allowed to remove it.
                     raise FileExistsError(f"'{filename}' already exists in the '{bucket.name}' filesystem but "
                                           f"not in the database. This needs to be manually resolved.")
                 logger.warning(f"'{filename}' exists in the '{bucket.name}' filesystem but "
                                f"not in the database. Pruning. Possible Data Loss.")
                 bucket.fs.remove(filename)
             else:
-                if overwrite:
-                    if not bucket.allow_overwrite:
-                        raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
-                                              f'and the bucket prohibits overwrites.')
-                    elif owner.puid != user:
-                        raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
-                                              f'and owned by someone else.')
+                # File also exists in the database.
+                if not overwrite:
+                    raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
+                # We may still be able to overwrite it.
+                if not bucket.allow_overwrite:
+                    # Bucket forbids overwriting
+                    raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
+                                          f'and the bucket prohibits overwrites.')
+                if owner.puid != user:
+                    # Exisiting file is owned by someone else.
+                    raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
+                                          f'and owned by someone else.')
                 logger.warning(f"Overwriting file {filename} in bucket {bucket.name}.")
                 bucket.delete(filename, user, session=session)
 
