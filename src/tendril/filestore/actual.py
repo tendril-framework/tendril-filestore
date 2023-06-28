@@ -5,6 +5,7 @@ import os
 
 from fs import open_fs
 from fs import move
+from fs.osfs import OSFS
 from sqlalchemy.exc import NoResultFound
 
 # Causes a circular import issue. Does not actually seem to be needed.
@@ -46,7 +47,7 @@ class FilestoreBucket(FilestoreBucketBase):
         self._fs = open_fs(self._uri)
 
     @property
-    def fs(self):
+    def fs(self) -> OSFS:
         return self._fs
 
     def _create_in_db(self):
@@ -55,6 +56,9 @@ class FilestoreBucket(FilestoreBucketBase):
 
     @with_db
     def _prep_for_upload(self, bucket, filename, user, overwrite=False, auto_prune=True, session=None):
+        subdir, _ = os.path.split(filename)
+        if subdir:
+            self.fs.makedirs(subdir, recreate=True)
         if bucket.fs.exists(filename):
             if not overwrite:
                 raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
@@ -122,14 +126,14 @@ class FilestoreBucket(FilestoreBucketBase):
         move.move_file(self.fs, filename, target_bucket.fs, filename)
         return change_file_bucket(filename, self.id, target_bucket.id, user, session=session)
 
-    def _list(self, page=None):
-        for f in self.fs.filterdir('/', page=page,
+    def _list(self, path='/', page=None):
+        for f in self.fs.filterdir(path, page=page,
                                    exclude_files=self._exclude_filenames,
                                    exclude_dirs=self._exclude_directories):
             yield f.name
 
-    def list(self, page=None):
-        return list(self._list(page=page))
+    def list(self, path='/', page=None):
+        return list(self._list(path=path, page=page))
 
     def list_info(self, include_owner=False, filenames=None,
                   pagination_params=None, page=None):

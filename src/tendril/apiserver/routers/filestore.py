@@ -144,7 +144,7 @@ async def delete_file_from_bucket(
                           response_model=List[str])
 async def list_files_in_bucket_fs(
         request: Request,
-        bucket: BucketName,
+        bucket: BucketName, path: str = '/',
         user: AuthUserModel = auth_spec()):
     try:
         bucket: FilestoreBucket = get_bucket(bucket)
@@ -153,7 +153,7 @@ async def list_files_in_bucket_fs(
             status_code=404,
             detail=f'{bucket} is not a recognized filestore bucket'
         )
-    return bucket.list()
+    return bucket.list(path=path)
 
 
 @filestore_management.get("/{bucket}/ls",
