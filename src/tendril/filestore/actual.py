@@ -60,7 +60,7 @@ class FilestoreBucket(FilestoreBucketBase):
         if subdir:
             self.fs.makedirs(subdir, recreate=True)
         if bucket.fs.exists(filename):
-            if not overwrite:
+            if not overwrite and not auto_prune:
                 raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
             try:
                 owner = get_storedfile_owner(filename, bucket.id, session=session)
@@ -73,9 +73,13 @@ class FilestoreBucket(FilestoreBucketBase):
                                f"not in the database. Pruning. Possible Data Loss.")
                 bucket.fs.remove(filename)
             else:
-                if not bucket.allow_overwrite and owner.puid != user:
-                    raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
-                                          f'and owned by someone else.')
+                if overwrite:
+                    if not bucket.allow_overwrite:
+                        raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
+                                              f'and the bucket prohibits overwrites.')
+                    elif owner.puid != user:
+                        raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
+                                              f'and owned by someone else.')
                 logger.warning(f"Overwriting file {filename} in bucket {bucket.name}.")
                 bucket.delete(filename, user, session=session)
 

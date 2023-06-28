@@ -1,6 +1,7 @@
 
 
 from typing import List
+from typing import Optional
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -23,6 +24,8 @@ from tendril.common.filestore.formats import MoveRequest
 from tendril.common.filestore.formats import StoredFileTModel
 
 from tendril.config import FILESTORE_ENABLED
+from tendril.utils import log
+logger = log.get_logger(__name__, log.DEFAULT)
 
 
 filestore = APIRouter(prefix='/filestore',
@@ -47,28 +50,36 @@ async def upload_file_to_bucket(
         request: Request,
         bucket: BucketName,
         overwrite: bool = False,
+        actual_user: Optional[str] = None,
         file: UploadFile = File(...),
         user: AuthUserModel = auth_spec()):
+
     try:
         bucket: FilestoreBucket = get_bucket(bucket)
     except KeyError:
+        logger.info(f"Got upload request with bad bucket '{bucket}' ({file.filename})")
         raise HTTPException(
             status_code=404,
             detail=f'{bucket} is not a recognized filestore bucket'
         )
+
     if not bucket.check_accepts(file.filename):
+        logger.info(f"Got upload request with bad extension ({file.filename})")
         raise HTTPException(
             status_code=415,
             detail=f"This bucket does not allow uploads with this extension"
         )
 
     try:
-        sf = bucket.upload(file, user.id, overwrite=overwrite)
+        actual_user = actual_user or user.id
+        sf = bucket.upload(file, actual_user, overwrite=overwrite)
     except FileExistsError as e:
+        logger.info(e)
         raise HTTPException(
             status_code=409,
             detail=str(e)
         )
+
     return {'storedfileid': sf.id}
     # print(request.headers.get('authorization'))
     # print(user)
@@ -80,6 +91,7 @@ async def move_file_from_bucket(
         request: Request,
         bucket: BucketName,
         move_request: MoveRequest,
+        actual_user: Optional[str] = None,
         user: AuthUserModel = auth_spec()):
 
     try:
@@ -101,7 +113,7 @@ async def move_file_from_bucket(
     try:
         sf = source_bucket.move(filename=move_request.filename,
                                 target_bucket=target_bucket,
-                                user=user.id,
+                                user=actual_user or user.id,
                                 overwrite=move_request.overwrite)
     except FileNotFoundError:
         raise HTTPException(
@@ -116,7 +128,9 @@ async def delete_file_from_bucket(
         request: Request,
         bucket: BucketName,
         filename: str,
+        actual_user: Optional[str] = None,
         user: AuthUserModel = auth_spec()):
+
     try:
         bucket: FilestoreBucket = get_bucket(bucket)
     except KeyError:
@@ -126,7 +140,7 @@ async def delete_file_from_bucket(
         )
 
     try:
-        bucket.delete(filename, user.id)
+        bucket.delete(filename, actual_user or user.id)
     except FileNotFoundError as e:
         raise HTTPException(
             status_code=404,
@@ -137,6 +151,7 @@ async def delete_file_from_bucket(
             status_code=403,
             detail=str(e)
         )
+
     return {'deleted': filename}
 
 
@@ -146,6 +161,7 @@ async def list_files_in_bucket_fs(
         request: Request,
         bucket: BucketName, path: str = '/',
         user: AuthUserModel = auth_spec()):
+
     try:
         bucket: FilestoreBucket = get_bucket(bucket)
     except KeyError:
@@ -165,6 +181,7 @@ async def list_files_in_bucket(
         include_owner: bool = False,
         params: Params = Depends(),
         user: AuthUserModel = auth_spec()):
+
     try:
         bucket: FilestoreBucket = get_bucket(bucket)
     except KeyError:

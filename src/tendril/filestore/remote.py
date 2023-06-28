@@ -36,19 +36,25 @@ class FilestoreBucketRemote(FilestoreBucketBase):
         }
 
     @with_async_client_cl()
-    async def upload(self, file, overwrite=False, client=None):
+    async def upload(self, file, actual_user=None, overwrite=False, client=None):
+        params = {}
+        if actual_user:
+            params['actual_user'] = actual_user
         response = await client.post(f'/v1/filestore/{self.name}/upload',
-                                     files={'file': file})
+                                     files={'file': file}, params=params)
         response.raise_for_status()
         return response.json()
 
     @with_async_client_cl()
-    async def move(self, filename, target_bucket, overwrite=False, client=None):
+    async def move(self, filename, target_bucket, actual_user=None, overwrite=False, client=None):
+        params = {}
+        if actual_user:
+            params['actual_user'] = actual_user
         data = {"to_bucket": target_bucket,
                 "filename": filename,
                 "overwrite": overwrite}
         response = await client.post(f'/v1/filestore/{self.name}/move',
-                                     json=data)
+                                     json=data, params=params)
         response.raise_for_status()
         return response.json()
 
