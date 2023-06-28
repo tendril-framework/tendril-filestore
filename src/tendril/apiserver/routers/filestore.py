@@ -14,6 +14,7 @@ from fastapi_pagination import Params
 from tendril.authn.users import auth_spec
 from tendril.authn.users import AuthUserModel
 from tendril.authn.users import authn_dependency
+from tendril.authn.pydantic import UserReferenceTModel
 
 from tendril.filestore.buckets import get_bucket
 from tendril.filestore.buckets import available_buckets
@@ -50,7 +51,7 @@ async def upload_file_to_bucket(
         request: Request,
         bucket: BucketName,
         overwrite: bool = False,
-        actual_user: Optional[str] = None,
+        actual_user: Optional[UserReferenceTModel] = None,
         file: UploadFile = File(...),
         user: AuthUserModel = auth_spec()):
 
@@ -91,7 +92,7 @@ async def move_file_from_bucket(
         request: Request,
         bucket: BucketName,
         move_request: MoveRequest,
-        actual_user: Optional[str] = None,
+        actual_user: Optional[UserReferenceTModel] = None,
         user: AuthUserModel = auth_spec()):
 
     try:
@@ -128,7 +129,7 @@ async def delete_file_from_bucket(
         request: Request,
         bucket: BucketName,
         filename: str,
-        actual_user: Optional[str] = None,
+        actual_user: Optional[UserReferenceTModel] = None,
         user: AuthUserModel = auth_spec()):
 
     try:
