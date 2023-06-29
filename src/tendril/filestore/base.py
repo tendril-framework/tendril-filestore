@@ -23,6 +23,10 @@ class FilestoreBucketBase(object):
         return self._name
 
     @property
+    def expose_uri(self):
+        return self._expose_uri
+
+    @property
     def uri(self):
         return self._uri
 

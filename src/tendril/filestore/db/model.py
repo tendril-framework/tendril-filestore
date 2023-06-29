@@ -24,6 +24,13 @@ class FilestoreBucketModel(DeclBase, BaseMixin):
     name = Column(String(50), nullable=False, unique=True)
     files = relationship("StoredFileModel", back_populates="bucket")
 
+    @property
+    def actual(self):
+        if not hasattr(self, '_actual'):
+            from tendril.filestore.buckets import get_bucket
+            self._actual = get_bucket(self.name)
+        return self._actual
+
 
 class StoredFileModel(ArtefactModel):
     _type_name = 'stored_file'
@@ -36,7 +43,7 @@ class StoredFileModel(ArtefactModel):
 
     @property
     def expose_uri(self):
-        return urljoin(self.bucket.expose_uri, self.filename)
+        return urljoin(self.bucket.actual.expose_uri, self.filename)
 
     __mapper_args__ = {
         "polymorphic_identity": _type_name,
