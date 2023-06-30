@@ -54,6 +54,18 @@ class FilestoreBucket(FilestoreBucketBase):
         b = register_bucket(name=self.name)
         self._id = b.id
 
+    def _check_ownership(self, owner, user):
+        if owner['user'].puid == user:
+            return True
+        if owner['interest'] and owner['interest'].check_user_access(user, 'delete_artefact'):
+            return True
+
+    def _check_access(self, owner, user):
+        if owner['user'].puid == user:
+            return True
+        if owner['interest'] and owner['interest'].check_user_access(user, 'read_artefact'):
+            return True
+
     @with_db
     def _prep_for_upload(self, bucket, filename, user, overwrite=False, auto_prune=True, session=None):
         subdir, _ = os.path.split(filename)
@@ -84,17 +96,17 @@ class FilestoreBucket(FilestoreBucketBase):
                     # Bucket forbids overwriting
                     raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
                                           f'and the bucket prohibits overwrites.')
-                if owner.puid != user:
+                if not self._check_ownership(owner, user):
                     # Exisiting file is owned by someone else.
                     raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
-                                          f'and owned by someone else.')
+                                      f'and owned by someone else.')
                 logger.warning(f"Overwriting file {filename} in bucket {bucket.name}.")
-                bucket.delete(filename, user, session=session)
+                bucket.delete(filename, user, interest, session=session)
 
     @with_db
-    def upload(self, file, user, overwrite=False, session=None):
+    def upload(self, file, user, interest=None, overwrite=False, session=None):
         filename = file.filename
-        self._prep_for_upload(self, filename, user, overwrite)
+        self._prep_for_upload(self, filename, user, interest, overwrite, session=session)
 
         with self._fs.open(filename, 'wb') as target:
             logger.debug(f"Writing file {filename} to bucket {self.name}")
@@ -122,7 +134,7 @@ class FilestoreBucket(FilestoreBucketBase):
                     'hash': {'sha256': sha256hash.hexdigest()},
                     'ext': ''.join(info.suffixes)}
 
-        sf = register_stored_file(filename, self._id, user, fileinfo, session=session)
+        sf = register_stored_file(filename, self._id, user, interest, fileinfo, session=session)
 
         return sf
 
@@ -166,7 +178,7 @@ class FilestoreBucket(FilestoreBucketBase):
 
         if not self._allow_delete:
             owner = get_storedfile_owner(filename, self._id, session=session)
-            if owner.puid != user:
+            if not self._check_ownership(owner, user):
                 raise PermissionError(f"Deletion of file {filename} "
                                       f"not permitted from bucket {self.name}")
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from tendril.utils.db import with_db
 from tendril.authn.db.model import User
 from tendril.authn.db.controller import preprocess_user
+from tendril.db.controllers.interests import preprocess_interest
 from tendril.artefacts.db.controller import get_artefact_owner
 from tendril import config
 
@@ -123,7 +124,7 @@ def get_paginated_stored_files(bucket, pagination_params=None, filenames=None, i
 
 
 @with_db
-def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, session=None):
+def register_stored_file(filename, bucket, user, interest=None, fileinfo=None, overwrite=True, session=None):
     if not config.FILESTORE_ENABLED:
         raise EnvironmentError("Filestore not enabled on this component. "
                                "Use the filestore API on the filestore component instead.")
@@ -133,6 +134,10 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
 
     bucket_id = preprocess_bucket(bucket, session=session)
     user_id = preprocess_user(user, session=session)
+    if interest:
+        interest_id = preprocess_interest(interest)
+    else:
+        interest_id = None
 
     try:
         existing = get_stored_file(filename, bucket_id, session=session)
@@ -141,6 +146,7 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
                                      bucket_id=bucket_id,
                                      fileinfo=fileinfo,
                                      user_id=user_id,
+                                     interest_id=interest_id,
                                      type='stored_file')
         # TODO Create Log Entry?
     else:
@@ -158,7 +164,7 @@ def register_stored_file(filename, bucket, user, fileinfo=None, overwrite=True, 
 
 
 @with_db
-def change_file_bucket(filename, bucket, target_bucket, user, session=None):
+def change_file_bucket(filename, bucket, target_bucket, user, interest, session=None):
     if not config.FILESTORE_ENABLED:
         raise EnvironmentError("Filestore not enabled on this component. "
                                "Use the filestore API on the filestore component instead.")
@@ -178,7 +184,8 @@ def change_file_bucket(filename, bucket, target_bucket, user, session=None):
 def get_storedfile_owner(filename, bucket, session=None):
     sf = get_stored_file(filename=filename, bucket=bucket, session=session)
     user = get_artefact_owner(sf.id, session=None)
-    return user
+    interest = sf.interest
+    return {'user': user, 'interest': interest}
 
 
 @with_db

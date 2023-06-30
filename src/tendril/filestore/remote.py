@@ -36,10 +36,12 @@ class FilestoreBucketRemote(FilestoreBucketBase):
         }
 
     @with_async_client_cl()
-    async def upload(self, file, actual_user=None, overwrite=False, client=None):
+    async def upload(self, file, actual_user=None, interest=None, overwrite=False, client=None):
         params = {}
         if actual_user:
             params['actual_user'] = actual_user
+        if interest:
+            params['interest'] = interest
         response = await client.post(f'/v1/filestore/{self.name}/upload',
                                      files={'file': file}, params=params)
         response.raise_for_status()
