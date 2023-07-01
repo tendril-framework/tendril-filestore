@@ -76,7 +76,13 @@ config_elements_filestore_core = [
         "os.path.join(INSTANCE_ROOT, 'filestore')",
         "Default path to create filestore folders at. This may "
         "be overridden by individual filestore bucket configurations."
-    )
+    ),
+    ConfigOption(
+        'FILESTORE_EXPOSE_ENABLED',
+        'True',
+        "Whether to enable the Filestore Expose API",
+        parser=bool,
+    ),
 ]
 
 

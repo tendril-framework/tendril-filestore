@@ -1,6 +1,11 @@
 
 
 import os
+from sqlalchemy.orm.exc import NoResultFound
+
+from tendril.filestore.db.controller import get_stored_file
+from tendril.filestore.db.controller import get_storedfile_owner
+from tendril.utils.db import with_db
 
 
 class FilestoreBucketBase(object):
@@ -74,3 +79,37 @@ class FilestoreBucketBase(object):
 
     def prune(self, user):
         raise NotImplementedError
+
+    def _check_ownership(self, owner, user):
+        if owner['user'].puid == user:
+            return True
+        if 'interest' not in owner.keys() or not owner['interest']:
+            return False
+        if owner['interest'].check_user_access(user, 'delete_artefact'):
+            return True
+        return False
+
+    def _check_access(self, owner, user):
+        if owner['user'].puid == user.id:
+            return True
+        if 'interest' not in owner.keys() or not owner['interest']:
+            return False
+        if owner['interest'].check_user_access(user.id, 'read_artefact'):
+            return True
+        return False
+
+    @with_db
+    def expose(self, filename, user, session=None):
+
+        try:
+            owner = get_storedfile_owner(filename, self._id, session=session)
+        except NoResultFound:
+            raise FileNotFoundError(f"Requested file {filename} does not exist in "
+                                    f"the bucket {self.name}.")
+
+        if not self._check_access(owner, user):
+            raise PermissionError(f"Access to the file {filename} is not "
+                                  f"granted to user {user.id}")
+
+        sf = get_stored_file(filename=filename, bucket=self.id, session=session)
+        return sf.x_sendfile_uri

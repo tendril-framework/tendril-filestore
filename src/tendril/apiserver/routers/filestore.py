@@ -26,6 +26,7 @@ from tendril.common.filestore.formats import MoveRequest
 from tendril.common.filestore.formats import StoredFileTModel
 
 from tendril.config import FILESTORE_ENABLED
+from tendril.config import FILESTORE_EXPOSE_ENABLED
 from tendril.utils import log
 logger = log.get_logger(__name__, log.DEFAULT)
 
@@ -235,7 +236,10 @@ if FILESTORE_ENABLED:
     routers = [
         filestore,
         filestore_management,
-        expose
     ]
 else:
     routers = []
+
+
+if FILESTORE_EXPOSE_ENABLED:
+    routers.append(expose)
