@@ -10,6 +10,7 @@ class FilestoreBucketBase(object):
         self._uri = uri
         self._name = name
         self._expose_uri = expose_uri or ''
+        self._x_sendfile_prefix = '/protected/'
         self._accept_ext = accept_ext or []
         self._allow_delete = allow_delete
         self._allow_overwrite = allow_overwrite
@@ -25,6 +26,10 @@ class FilestoreBucketBase(object):
     @property
     def expose_uri(self):
         return self._expose_uri
+
+    @property
+    def x_sendfile_prefix(self):
+        return self._x_sendfile_prefix
 
     @property
     def uri(self):

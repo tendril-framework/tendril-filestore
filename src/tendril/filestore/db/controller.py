@@ -5,12 +5,12 @@ from sqlalchemy import select
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm.exc import NoResultFound
 
+from tendril import config
 from tendril.utils.db import with_db
 from tendril.authn.db.model import User
 from tendril.authn.db.controller import preprocess_user
-from tendril.db.controllers.interests import preprocess_interest
 from tendril.artefacts.db.controller import get_artefact_owner
-from tendril import config
+from tendril.db.controllers.interests import preprocess_interest
 
 from .model import FilestoreBucketModel
 from .model import StoredFileModel
@@ -184,8 +184,12 @@ def change_file_bucket(filename, bucket, target_bucket, user, interest, session=
 def get_storedfile_owner(filename, bucket, session=None):
     sf = get_stored_file(filename=filename, bucket=bucket, session=session)
     user = get_artefact_owner(sf.id, session=None)
-    interest = sf.interest
-    return {'user': user, 'interest': interest}
+    try:
+        from tendril.interests import type_codes
+        interest = type_codes[sf.interest.type](sf.interest, can_create=False)
+        return {'user': user, 'interest': interest}
+    except ImportError:
+        return {'user': user}
 
 
 @with_db

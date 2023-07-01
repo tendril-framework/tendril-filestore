@@ -45,6 +45,10 @@ class StoredFileModel(ArtefactModel):
     def expose_uri(self):
         return urljoin(self.bucket.actual.expose_uri, self.filename)
 
+    @property
+    def x_sendfile_uri(self):
+        return urljoin(self.bucket.actual.x_sendfile_prefix, self.filename)
+
     __mapper_args__ = {
         "polymorphic_identity": _type_name,
     }

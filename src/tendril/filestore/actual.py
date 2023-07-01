@@ -12,6 +12,7 @@ from sqlalchemy.exc import NoResultFound
 # from tendril.authn.users import get_user_stub
 from tendril.filestore.base import FilestoreBucketBase
 from tendril.filestore.db.controller import register_bucket
+from tendril.filestore.db.controller import get_stored_file
 from tendril.filestore.db.controller import get_storedfile_owner
 from tendril.filestore.db.controller import register_stored_file
 from tendril.filestore.db.controller import change_file_bucket
@@ -61,9 +62,9 @@ class FilestoreBucket(FilestoreBucketBase):
             return True
 
     def _check_access(self, owner, user):
-        if owner['user'].puid == user:
+        if owner['user'].puid == user.id:
             return True
-        if owner['interest'] and owner['interest'].check_user_access(user, 'read_artefact'):
+        if owner['interest'] and owner['interest'].check_user_access(user.id, 'read_artefact'):
             return True
 
     @with_db
@@ -196,6 +197,26 @@ class FilestoreBucket(FilestoreBucketBase):
                 logger.info(f"Deleting file {filename} from bucket {self.name}")
                 self.fs.remove(filename)
                 delete_stored_file(filename, self.id, user, session=session)
+
+    @with_db
+    def expose(self, filename, user, session=None):
+
+        if not self._fs.exists(filename):
+            raise FileNotFoundError(f"Requested file {filename} does not seem to "
+                                    f"exist in the bucket {self.name}.")
+
+        try:
+            owner = get_storedfile_owner(filename, self._id, session=session)
+        except NoResultFound:
+            raise FileNotFoundError(f"Requested file {filename} may exist but "
+                                    f"is orphaned. Access cannot be granted.")
+
+        if not self._check_access(owner, user):
+            raise PermissionError(f"Access to the file {filename} is not "
+                                  f"granted to user {user.id}")
+
+        sf = get_stored_file(filename=filename, bucket=self.id, session=session)
+        return sf.x_sendfile_uri
 
     def __repr__(self):
         return "<FilestoreBucket {} at {}>".format(self.name, self.uri)

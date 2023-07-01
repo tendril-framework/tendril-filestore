@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
+from fastapi import Response
 from fastapi import File
 from fastapi import UploadFile
 from fastapi import HTTPException
@@ -30,15 +31,20 @@ logger = log.get_logger(__name__, log.DEFAULT)
 
 
 filestore = APIRouter(prefix='/filestore',
-                      tags=["File Management API"],
+                      tags=["Filestore Common API"],
                       dependencies=[Depends(authn_dependency),
                                     auth_spec(scopes=['file_management:common'])])
 
 
 filestore_management = APIRouter(prefix='/filestore',
-                                 tags=["File Management Administration API"],
+                                 tags=["File Administration API"],
                                  dependencies=[Depends(authn_dependency),
                                                auth_spec(scopes=['file_management:admin'])])
+
+
+expose = APIRouter(prefix='/filestore',
+                   tags=['Filestore Protected Expose API'],
+                   dependencies=[Depends(authn_dependency)])
 
 
 @filestore.get("/buckets")
@@ -210,10 +216,26 @@ async def purge_all_files_in_bucket(
     return bucket.purge(user.id)
 
 
+@expose.get("/{bucket}/expose/{filepath:path}")
+async def get_exposed_file(request: Request, bucket: BucketName,
+                           filepath: str, response: Response,
+                           user: AuthUserModel = auth_spec()):
+    try:
+        bucket: FilestoreBucket = get_bucket(bucket)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'{bucket} is not a recognized filestore bucket'
+        )
+    response.headers['X-Accel-Redirect'] = bucket.expose(filepath, user=user)
+    return
+
+
 if FILESTORE_ENABLED:
     routers = [
         filestore,
-        filestore_management
+        filestore_management,
+        expose
     ]
 else:
     routers = []
