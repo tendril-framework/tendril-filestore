@@ -164,7 +164,7 @@ def register_stored_file(filename, bucket, user, interest=None, fileinfo=None, o
 
 
 @with_db
-def change_file_bucket(filename, bucket, target_bucket, user, interest, session=None):
+def change_file_bucket(filename, bucket, target_bucket, user, interest=None, session=None):
     if not config.FILESTORE_ENABLED:
         raise EnvironmentError("Filestore not enabled on this component. "
                                "Use the filestore API on the filestore component instead.")
@@ -184,6 +184,8 @@ def change_file_bucket(filename, bucket, target_bucket, user, interest, session=
 def get_storedfile_owner(filename, bucket, session=None):
     sf = get_stored_file(filename=filename, bucket=bucket, session=session)
     user = get_artefact_owner(sf.id, session=None)
+    if not sf.interest:
+        return {'user': user}
     try:
         from tendril.interests import type_codes
         interest = type_codes[sf.interest.type](sf.interest, can_create=False)

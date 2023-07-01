@@ -58,14 +58,20 @@ class FilestoreBucket(FilestoreBucketBase):
     def _check_ownership(self, owner, user):
         if owner['user'].puid == user:
             return True
-        if owner['interest'] and owner['interest'].check_user_access(user, 'delete_artefact'):
+        if 'interest' not in owner.keys() or not owner['interest']:
+            return False
+        if owner['interest'].check_user_access(user, 'delete_artefact'):
             return True
+        return False
 
     def _check_access(self, owner, user):
         if owner['user'].puid == user.id:
             return True
-        if owner['interest'] and owner['interest'].check_user_access(user.id, 'read_artefact'):
+        if 'interest' not in owner.keys() or not owner['interest']:
+            return False
+        if owner['interest'].check_user_access(user.id, 'read_artefact'):
             return True
+        return False
 
     @with_db
     def _prep_for_upload(self, bucket, filename, user, overwrite=False, auto_prune=True, session=None):
