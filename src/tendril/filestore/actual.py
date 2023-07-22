@@ -55,7 +55,7 @@ class FilestoreBucket(FilestoreBucketBase):
         self._id = b.id
 
     @with_db
-    def _prep_for_upload(self, bucket, filename, user, overwrite=False, auto_prune=True, session=None):
+    def _prep_for_upload(self, bucket, filename, user, interest=None, overwrite=False, auto_prune=True, session=None):
         subdir, _ = os.path.split(filename)
         if subdir:
             self.fs.makedirs(subdir, recreate=True)
