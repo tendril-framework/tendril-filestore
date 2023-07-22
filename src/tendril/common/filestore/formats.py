@@ -25,18 +25,6 @@ class BucketName(str):
         return cls(v)
 
 
-class StoredFile(str):
-    @classmethod
-    def _get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if v not in _available_buckets:
-            raise ValueError(f"'{v}' is not in {_available_buckets}")
-        return cls(v)
-
-
 class MoveRequest(TendrilTBaseModel):
     to_bucket: BucketName
     filename: str
