@@ -58,7 +58,7 @@ class FilestoreBucket(FilestoreBucketBase):
     def _prep_for_upload(self, bucket, filename, user, interest=None, overwrite=False, auto_prune=True, session=None):
         subdir, _ = os.path.split(filename)
         if subdir:
-            self.fs.makedirs(subdir, recreate=True)
+            bucket.fs.makedirs(subdir, recreate=True)
         if bucket.fs.exists(filename):
             # File exists in the filesystem
             if not overwrite and not auto_prune:
@@ -84,7 +84,7 @@ class FilestoreBucket(FilestoreBucketBase):
                     # Bucket forbids overwriting
                     raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
                                           f'and the bucket prohibits overwrites.')
-                if not self._check_ownership(owner, user):
+                if not bucket._check_ownership(owner, user):
                     # Exisiting file is owned by someone else.
                     raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket '
                                       f'and owned by someone else.')
