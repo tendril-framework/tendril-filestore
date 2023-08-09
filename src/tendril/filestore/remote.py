@@ -22,10 +22,10 @@ _authenticator = IntramuralAuthenticator(
 
 
 async def get_remote_bucket_list(remote_uri):
-    async with async_client(base_url=remote_uri, auth=_authenticator) as client:
-        response = await client.get('/v1/filestore/buckets')
-        return response.json()["available_buckets"]
-    # return['incoming', 'cdn', 'outgoing']
+    # async with async_client(base_url=remote_uri, auth=_authenticator) as client:
+    #     response = await client.get('/v1/filestore/buckets')
+    #     return response.json()["available_buckets"]
+    return['incoming', 'cdn', 'outgoing']
 
 
 class FilestoreBucketRemote(FilestoreBucketBase):
