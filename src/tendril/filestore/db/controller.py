@@ -66,10 +66,14 @@ def preprocess_bucket(bucket, session=None):
 
 @with_db
 def get_stored_file(filename, bucket, session=None):
-    q = session.query(StoredFileModel).filter_by(filename=filename)
+    q = session.query(StoredFileModel)
     if bucket:
         bucket_id = preprocess_bucket(bucket, session=session)
-        q.filter_by(bucket_id=bucket_id)
+        q = q.filter_by(bucket_id=bucket_id)
+    if '%' in filename:
+        q = q.filter(StoredFileModel.filename.like(filename))
+    else:
+        q = q.filter_by(filename=filename)
     return q.one()
 
 
