@@ -41,7 +41,7 @@ def init_remote():
     else:
         logger.info("Attempting to make a connection to the remote filestore.")
         uri = config.FILESTORE_REMOTE_URI
-        remote_bucket_list = asyncio.run(get_remote_bucket_list(uri))
+        remote_bucket_list = get_remote_bucket_list(uri)
         for bucket_name in config.FILESTORE_BUCKETS:
             enabled, accept_ext, expose_uri, allow_delete, allow_overwrite, _ = _bucket_config(bucket_name)
             if enabled and bucket_name in remote_bucket_list:

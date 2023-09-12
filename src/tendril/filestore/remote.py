@@ -21,7 +21,15 @@ _authenticator = IntramuralAuthenticator(
 )
 
 
-async def get_remote_bucket_list(remote_uri):
+def get_remote_bucket_list(remote_uri):
+    # TODO This causes issue with the asyncio loop because
+    #  asyncio.run() causes a loop to start and stop, and this
+    #  breaks things when something else wants a loop.
+    #  We aren't using this in any case because it uses up M2M
+    #  access tokens for every component.
+    #  This should be reconsidered seriously before multiple
+    #  file management servers can be supported,
+    #
     # async with async_client(base_url=remote_uri, auth=_authenticator) as client:
     #     response = await client.get('/v1/filestore/buckets')
     #     return response.json()["available_buckets"]
