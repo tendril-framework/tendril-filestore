@@ -65,7 +65,7 @@ class FilestoreBucket(FilestoreBucketBase):
                 # We have no way to remove the existing file.
                 raise FileExistsError(f'{filename} already exists in the {bucket.name} bucket. Delete it first.')
             try:
-                owner = get_storedfile_owner(filename, bucket.id, session=session)
+                owner = get_storedfile_owner(filename=filename, bucket=bucket.id, session=session)
             except NoResultFound:
                 # File exists in fs but not in the DB.
                 if not auto_prune:
@@ -165,7 +165,7 @@ class FilestoreBucket(FilestoreBucketBase):
                                     f"from bucket {self.name} requested.")
 
         if not self._allow_delete:
-            owner = get_storedfile_owner(filename, self._id, session=session)
+            owner = get_storedfile_owner(filename=filename, bucket=self._id, session=session)
             if not self._check_ownership(owner, user):
                 raise PermissionError(f"Deletion of file {filename} "
                                       f"not permitted from bucket {self.name}")

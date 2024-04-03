@@ -102,7 +102,7 @@ class FilestoreBucketBase(object):
     def expose(self, filename, user, session=None):
 
         try:
-            owner = get_storedfile_owner(filename, self._id, session=session)
+            owner = get_storedfile_owner(filename=filename, bucket=self._id, session=session)
         except NoResultFound:
             raise FileNotFoundError(f"Requested file {filename} does not exist in "
                                     f"the bucket {self.name}.")

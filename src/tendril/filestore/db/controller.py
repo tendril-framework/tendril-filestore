@@ -65,16 +65,22 @@ def preprocess_bucket(bucket, session=None):
 
 
 @with_db
-def get_stored_file(filename, bucket, session=None):
+def get_stored_file(id=None, filename=None, bucket=None, session=None):
     q = session.query(StoredFileModel)
     if bucket:
         bucket_id = preprocess_bucket(bucket, session=session)
         q = q.filter_by(bucket_id=bucket_id)
-    if '%' in filename:
-        q = q.filter(StoredFileModel.filename.like(filename))
+    if filename:
+        if '%' in filename:
+            q = q.filter(StoredFileModel.filename.like(filename))
+        else:
+            q = q.filter_by(filename=filename)
+        return q.one()
+    elif id:
+        q = q.filter_by(id=id)
+        return q.one()
     else:
-        q = q.filter_by(filename=filename)
-    return q.one()
+        raise AttributeError("Need either id or filename to get a storedfile")
 
 
 @with_db
@@ -144,7 +150,7 @@ def register_stored_file(filename, bucket, user, interest=None, fileinfo=None, o
         interest_id = None
 
     try:
-        existing = get_stored_file(filename, bucket_id, session=session)
+        existing = get_stored_file(filename=filename, bucket=bucket_id, session=session)
     except NoResultFound:
         storedfile = StoredFileModel(filename=filename,
                                      bucket_id=bucket_id,
@@ -173,7 +179,7 @@ def change_file_bucket(filename, bucket, target_bucket, user, interest=None, ses
         raise EnvironmentError("Filestore not enabled on this component. "
                                "Use the filestore API on the filestore component instead.")
 
-    storedfile: StoredFileModel = get_stored_file(filename, bucket, session=session)
+    storedfile: StoredFileModel = get_stored_file(filename=filename, bucket=bucket, session=session)
 
     target_bucket = preprocess_bucket(target_bucket)
     storedfile.bucket_id = target_bucket
@@ -185,8 +191,8 @@ def change_file_bucket(filename, bucket, target_bucket, user, interest=None, ses
 
 
 @with_db
-def get_storedfile_owner(filename, bucket, session=None):
-    sf = get_stored_file(filename=filename, bucket=bucket, session=session)
+def get_storedfile_owner(id=None, filename=None, bucket=None, session=None):
+    sf = get_stored_file(id=id, filename=filename, bucket=bucket, session=session)
     user = get_artefact_owner(sf.id, session=None)
     if not sf.interest:
         return {'user': user}
