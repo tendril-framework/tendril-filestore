@@ -61,6 +61,7 @@ async def upload_file_to_bucket(
         actual_user: Optional[UserReferenceTModel] = None,
         file: UploadFile = File(...),
         interest: Optional[int] = None,
+        label: Optional[str] = None,
         user: AuthUserModel = auth_spec()):
 
     try:
@@ -81,7 +82,7 @@ async def upload_file_to_bucket(
 
     try:
         actual_user = actual_user or user.id
-        sf = bucket.upload(file, actual_user, interest=interest, overwrite=overwrite)
+        sf = bucket.upload(file, actual_user, interest=interest, label=label, overwrite=overwrite)
     except FileExistsError as e:
         logger.info(e)
         raise HTTPException(

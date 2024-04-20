@@ -134,7 +134,7 @@ def get_paginated_stored_files(bucket, pagination_params=None, filenames=None, i
 
 
 @with_db
-def register_stored_file(filename, bucket, user, interest=None, fileinfo=None, overwrite=True, session=None):
+def register_stored_file(filename, bucket, user, interest=None, fileinfo=None, overwrite=True, label=None, session=None):
     if not config.FILESTORE_ENABLED:
         raise EnvironmentError("Filestore not enabled on this component. "
                                "Use the filestore API on the filestore component instead.")
@@ -157,7 +157,8 @@ def register_stored_file(filename, bucket, user, interest=None, fileinfo=None, o
                                      fileinfo=fileinfo,
                                      user_id=user_id,
                                      interest_id=interest_id,
-                                     type='stored_file')
+                                     type='stored_file',
+                                     label=label)
         # TODO Create Log Entry?
     else:
         if not overwrite:

@@ -56,7 +56,7 @@ class FilestoreBucketBase(object):
         name, ext = os.path.splitext(filename)
         return ext in self._accept_ext
 
-    def upload(self, file, user, overwrite=False):
+    def upload(self, file, user, interest=None, label=None, overwrite=False):
         raise NotImplementedError
 
     def move(self, filename, target_bucket, user, overwrite=False):

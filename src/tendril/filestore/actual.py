@@ -92,7 +92,7 @@ class FilestoreBucket(FilestoreBucketBase):
                 bucket.delete(filename, user, interest, session=session)
 
     @with_db
-    def upload(self, file, user, interest=None, overwrite=False, session=None):
+    def upload(self, file, user, interest=None, label=None, overwrite=False, session=None):
         filename = file.filename
         self._prep_for_upload(self, filename, user, interest, overwrite, session=session)
 
@@ -122,7 +122,8 @@ class FilestoreBucket(FilestoreBucketBase):
                     'hash': {'sha256': sha256hash.hexdigest()},
                     'ext': ''.join(info.suffixes)}
 
-        sf = register_stored_file(filename, self._id, user, interest, fileinfo, session=session)
+        sf = register_stored_file(filename, self._id, user, interest, fileinfo,
+                                  label=label, session=session)
 
         return sf
 
