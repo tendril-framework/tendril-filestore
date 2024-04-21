@@ -94,7 +94,7 @@ class FilestoreBucketBase(object):
             return True
         if 'interest' not in owner.keys() or not owner['interest']:
             return False
-        if owner['interest'].check_user_access(user.id, 'read_artefact'):
+        if owner['interest'].check_user_access(user.id, 'read_artefacts'):
             return True
         return False
 
